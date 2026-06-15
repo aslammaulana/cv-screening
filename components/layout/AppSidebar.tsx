@@ -1,55 +1,109 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  RiDashboard3Line,
-  RiAwardLine,
-  RiGroupLine,
-  RiSettings3Line,
-  RiFileTextLine,
-} from "react-icons/ri";
+import { useState, useEffect } from "react"
+import { LayoutDashboard, Award, Settings, X, ChevronRight } from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
+import { usePathname } from "next/navigation"
+import clsx from "clsx"
+
+interface AppSidebarProps {
+  mobileOpen?: boolean
+  onMobileClose?: () => void
+}
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: RiDashboard3Line },
-  { href: "/dashboard/qualification", label: "Qualifications", icon: RiAwardLine },
-  { href: "/dashboard/all-applicants", label: "All Applicants", icon: RiGroupLine },
-  { href: "/dashboard/settings", label: "Settings", icon: RiSettings3Line },
-];
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/qualification", label: "Qualifications", icon: Award },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+]
 
-export default function AppSidebar() {
-  const pathname = usePathname();
+export default function AppSidebar({ mobileOpen = false, onMobileClose }: AppSidebarProps) {
+  const pathname = usePathname()
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    if (onMobileClose) onMobileClose()
+  }, [pathname])
+
+  const navContent = (isMobile: boolean) => (
+    <nav className={clsx("flex flex-col gap-2 px-2 py-4", isMobile ? "group-mobile" : "")}>
+      {navItems.map((item) => {
+        const isActive = pathname === item.href
+        const Icon = item.icon
+
+        const className = clsx(
+          "flex h-10 w-full items-center justify-start rounded-lg px-3 transition-colors",
+          isActive
+            ? "bg-[#ffffff23] text-white"
+            : "text-zinc-400 hover:bg-[#27272a] hover:text-white"
+        )
+
+        return (
+          <Link key={item.href} href={item.href} className={className}>
+            <div className="relative shrink-0">
+              <Icon className="h-5 w-5" />
+            </div>
+            <span className={clsx(
+              "ml-3 overflow-hidden text-sm font-medium whitespace-nowrap",
+              isMobile
+                ? "opacity-100"
+                : "opacity-0 transition-all duration-300 group-hover:opacity-100"
+            )}>
+              {item.label}
+            </span>
+          </Link>
+        )
+      })}
+    </nav>
+  )
 
   return (
-    <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-gray-200">
-        <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-          <RiFileTextLine className="text-white text-base" />
-        </div>
-        <span className="font-semibold text-sm text-gray-900">CV Screener</span>
-      </div>
+    <>
+      {/* ── DESKTOP SIDEBAR — hover to expand ── */}
+      <aside className="group hidden md:flex fixed left-0 top-0 z-40 h-screen w-[64px] flex-col border-r-2 border-tm-border bg-tm-background transition-all duration-300 ease-in-out hover:w-[240px] overflow-y-auto overflow-x-hidden scrollbar-thin">
+        {/* Desktop sidebar header */}
+        <Link href="/dashboard" className="flex h-16 items-center gap-3 px-3 border-b border-tm-border shrink-0">
+          <div className="shrink-0">
+            <Image src="/logo-tmbh-512.png" alt="Logo" width={40} height={40} className="rounded-lg h-10 w-10" />
+          </div>
+          <span className="text-base font-semibold tracking-tight text-white opacity-0 transition-all duration-300 group-hover:opacity-100 whitespace-nowrap">CV Screener</span>
+        </Link>
+        {navContent(false)}
+      </aside>
 
-      {/* Nav */}
-      <nav className="flex flex-col gap-1 p-3 flex-1">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href;
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-green-600 text-white"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-              }`}
-            >
-              <Icon className="text-lg flex-shrink-0" />
-              {label}
-            </Link>
-          );
-        })}
-      </nav>
-    </aside>
-  );
+      {/* ── MOBILE SIDEBAR — slide in from left ── */}
+      <aside
+        className={clsx(
+          "fixed top-0 left-0 z-50 h-screen w-[80%] flex-col border-r-2 border-tm-border bg-tm-secondary overflow-y-auto overflow-x-hidden transition-transform duration-300 ease-in-out md:hidden",
+          mobileOpen ? "translate-x-0 flex" : "-translate-x-full hidden"
+        )}
+      >{/* Mobile sidebar header */}
+        <div className="flex h-16 items-center justify-between px-4 border-b border-tm-border">
+          <Link href="/dashboard" onClick={onMobileClose} className="flex items-center gap-3">
+            <div className="shrink-0">
+              <Image src="/logo-tmbh-512.png" alt="Logo" width={32} height={32} className="rounded-lg h-8 w-8" />
+            </div>
+            <span className="text-base font-semibold tracking-tight text-white">CV Screener</span>
+          </Link>
+          <button
+            onClick={onMobileClose}
+            className="flex items-center justify-center rounded-lg text-[#ffffffbe] hover:text-[#ffffff] transition-colors cursor-pointer"
+            aria-label="Close sidebar"
+          >
+            <X size={21} />
+          </button>
+        </div>
+        {navContent(true)}
+      </aside>
+
+      {/* Overlay for mobile sidebar */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={onMobileClose}
+        />
+      )}
+    </>
+  )
 }

@@ -8,9 +8,9 @@ interface MetricCardProps {
 
 export default function MetricCard({ title, value, href }: MetricCardProps) {
     const content = (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-sm transition-shadow cursor-default">
-            <p className="text-sm font-medium text-gray-500 mb-3">{title}</p>
-            <p className="text-4xl font-bold text-gray-900">{value}</p>
+        <div className="bg-tm-secondary border border-tm-border rounded-xl p-6 hover:shadow-lg transition-all cursor-default">
+            <p className="text-sm font-medium text-zinc-400 mb-3">{title}</p>
+            <p className="text-4xl font-bold text-white">{value}</p>
         </div>
     );
 
