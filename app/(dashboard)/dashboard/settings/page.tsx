@@ -128,20 +128,20 @@ export default function SettingsPage() {
 
     if (isLoading) {
         return (
-            <div className="p-8 flex flex-col items-center justify-center min-h-[400px] text-gray-500">
-                <RiLoader4Line className="text-4xl animate-spin mb-4 text-blue-500" />
-                <p>Loading AI configurations...</p>
+            <div className="p-8 flex flex-col items-center justify-center min-h-[400px] text-zinc-500">
+                <RiLoader4Line className="text-4xl animate-spin mb-4 text-white" />
+                <p className="animate-pulse">Loading AI configurations...</p>
             </div>
         );
     }
 
     if (!config) {
         return (
-            <div className="p-8 text-center bg-white m-8 rounded-2xl border border-gray-100 shadow-sm">
-                <p className="text-red-500 mb-4 font-medium">No AI configuration found in database.</p>
+            <div className="p-8 text-center bg-tm-secondary m-8 rounded-3xl border border-tm-border shadow-2xl">
+                <p className="text-red-400 mb-4 font-medium italic">No AI configuration found in database.</p>
                 <button
                     onClick={fetchConfig}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-xl transition-all"
+                    className="bg-zinc-800 hover:bg-zinc-700 text-white px-8 py-2.5 rounded-xl transition-all cursor-pointer font-bold text-sm"
                 >
                     Retry Connection
                 </button>
@@ -150,23 +150,23 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="pb-12">
+        <div className="pb-12 bg-tm-background min-h-screen">
             <DashboardHeader title="AI Configuration Settings" />
 
-            <main className="p-8 max-w-5xl mx-auto space-y-10">
+            <main className="p-8 w-full space-y-10">
                 {/* AI Configuration Form Section */}
                 <section className="space-y-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between pb-4 border-b border-zinc-800/50">
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">AI Prompt Setup</h2>
-                            <p className="text-sm text-gray-500">Master instructions that control how Gemini parses and scores CVs.</p>
+                            <h2 className="text-xl font-bold text-white tracking-tight uppercase">AI Prompt Setup</h2>
+                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-1">Master Configuration</p>
                         </div>
                         <button
                             onClick={handleSave}
                             disabled={isSaving || JSON.stringify(config) === JSON.stringify(originalConfig)}
-                            className={`flex items-center gap-2 px-8 py-2.5 rounded-xl font-semibold transition-all shadow-lg disabled:opacity-50 disabled:shadow-none ${saveStatus === "success"
-                                ? "bg-green-600 text-white shadow-green-500/20"
-                                : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
+                            className={`flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold transition-all disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed cursor-pointer ${saveStatus === "success"
+                                ? "bg-green-500 text-black"
+                                : "bg-white hover:bg-zinc-200 text-black"
                                 }`}
                         >
                             {isSaving ? (
@@ -174,29 +174,29 @@ export default function SettingsPage() {
                             ) : saveStatus === "success" ? (
                                 <RiCheckLine className="text-xl" />
                             ) : null}
-                            {isSaving ? "Saving..." : saveStatus === "success" ? "Saved!" : "Save Changes"}
+                            {isSaving ? "Saving..." : saveStatus === "success" ? "Saved" : "Save Changes"}
                         </button>
                     </div>
 
-                    <div className="bg-white border border-gray-200 rounded-3xl p-8 space-y-8 shadow-sm">
+                    <div className="bg-tm-secondary border border-tm-border rounded-3xl p-8 space-y-10 shadow-xl relative overflow-hidden">
                         <PromptEditor
                             label="Persona Prompt"
                             value={config.persona_prompt}
                             onChange={(val) => setConfig({ ...config, persona_prompt: val })}
-                            rows={3}
+                            rows={4}
                         />
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4 border-t border-gray-100">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 pt-8 border-t border-zinc-800/50">
                             <PromptEditor
                                 label="Extraction Prompt"
                                 value={config.extraction_prompt}
                                 onChange={(val) => setConfig({ ...config, extraction_prompt: val })}
-                                rows={12}
+                                rows={15}
                             />
                             <PromptEditor
                                 label="Scoring Prompt"
                                 value={config.scoring_prompt}
                                 onChange={(val) => setConfig({ ...config, scoring_prompt: val })}
-                                rows={12}
+                                rows={15}
                             />
                         </div>
                     </div>
@@ -204,25 +204,30 @@ export default function SettingsPage() {
 
                 {/* Change History Section */}
                 <section className="space-y-6">
-                    <div className="flex items-center gap-2">
-                        <RiHistoryLine className="text-xl text-gray-400" />
-                        <h2 className="text-xl font-bold text-gray-900">Change History</h2>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-zinc-800/50 rounded-lg">
+                            <RiHistoryLine className="text-xl text-zinc-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-white tracking-tight uppercase">Change History</h2>
+                            <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-wider">Log of recent modifications</p>
+                        </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
+                    <div className="bg-tm-secondary border border-tm-border rounded-3xl overflow-hidden shadow-xl">
                         {history.length > 0 ? (
-                            <div className="divide-y divide-gray-100">
+                            <div className="divide-y divide-zinc-800/50">
                                 {history.map((item) => (
-                                    <div key={item.id} className="px-8 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-2 h-2 rounded-full ${item.prompt_type === 'persona' ? 'bg-purple-500' :
+                                    <div key={item.id} className="px-10 py-6 flex items-center justify-between hover:bg-zinc-800/30 transition-all group">
+                                        <div className="flex items-center gap-6">
+                                            <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] ${item.prompt_type === 'persona' ? 'bg-purple-500' :
                                                 item.prompt_type === 'extraction' ? 'bg-blue-500' : 'bg-amber-500'
                                                 }`} />
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">
+                                                <p className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">
                                                     <span className="capitalize">{item.prompt_type}</span> prompt updated
                                                 </p>
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-xs text-zinc-500 font-medium">
                                                     {new Date(item.changed_at).toLocaleString('en-US', {
                                                         month: 'short', day: 'numeric', year: 'numeric',
                                                         hour: '2-digit', minute: '2-digit'
@@ -230,13 +235,15 @@ export default function SettingsPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        {/* Optional: Add a "View diff" button here later */}
+                                        <div className="text-[10px] font-bold text-zinc-700 group-hover:text-zinc-500 transition-colors uppercase tracking-widest">
+                                            Revision Auto-logged
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="px-8 py-12 text-center text-gray-400 italic">
-                                No changes recorded yet.
+                            <div className="px-10 py-16 text-center text-zinc-600 italic font-medium">
+                                No changes recorded in the audit log yet.
                             </div>
                         )}
                     </div>

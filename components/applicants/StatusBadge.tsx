@@ -50,7 +50,7 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
     const { label, className } = config[status] ?? config.pending;
     return (
         <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${className}`}
+            className={`inline-flex items-center px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shadow-sm shadow-black/20 ${className}`}
         >
             {label}
         </span>

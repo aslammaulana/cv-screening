@@ -14,6 +14,8 @@ export interface Position {
     weight_education: number;
     focus_points: string;
     red_flags: string;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export const mockPositions: Position[] = [

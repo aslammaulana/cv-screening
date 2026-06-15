@@ -1,53 +1,52 @@
 "use client";
 
-import { RiSearchLine, RiFilter3Line } from "react-icons/ri";
-
-const STATUSES = [
-    "All Status",
-    "Pending",
-    "Extracted",
-    "Manual Review",
-    "Auto Approved",
-    "Auto Rejected",
-    "Approved",
-    "Rejected",
-    "Failed"
-];
+import { useState } from "react";
+import { RiSearchLine } from "react-icons/ri";
 
 interface FilterBarProps {
     filter: { search: string; position: string; status: string };
     setFilter: (f: any) => void;
+    onDeleteSelected?: () => void;
+    selectedCount?: number;
 }
 
-export default function FilterBar({ filter, setFilter }: FilterBarProps) {
-    return (
-        <div className="p-4 border-b border-tm-border flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full md:w-96">
-                <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                <input
-                    type="text"
-                    placeholder="Search by name or email..."
-                    className="w-full pl-10 pr-4 py-2 bg-tm-background border border-tm-border rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    value={filter.search}
-                    onChange={(e) => setFilter({ ...filter, search: e.target.value })}
-                />
-            </div>
+export default function FilterBar({ filter, setFilter, onDeleteSelected, selectedCount = 0 }: FilterBarProps) {
+    const [showSearch, setShowSearch] = useState(false);
 
-            <div className="flex items-center gap-3 w-full md:w-auto">
-                <div className="flex items-center gap-2 text-sm text-zinc-400 min-w-max">
-                    <RiFilter3Line />
-                    <span>Filter:</span>
+    return (
+        <div className="px-4 py-3 border-b border-zinc-800/50 flex items-center gap-3 bg-zinc-900/30">
+            <button
+                onClick={() => setShowSearch(!showSearch)}
+                className={`p-2 rounded-lg transition-all cursor-pointer ${showSearch || filter.search
+                    ? "bg-zinc-100 text-zinc-900 border border-zinc-200"
+                    : "bg-zinc-800/50 border border-zinc-700/50 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                    }`}
+            >
+                <RiSearchLine className="text-sm" />
+            </button>
+
+            {showSearch && (
+                <div className="relative flex-1 max-w-xs animate-in slide-in-from-left-2 duration-200">
+                    <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+                    <input
+                        autoFocus
+                        type="text"
+                        placeholder="Search by name or email..."
+                        className="w-full pl-9 pr-4 py-2 bg-zinc-950/50 border border-zinc-800/50 rounded-lg text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-zinc-700 transition-all"
+                        value={filter.search}
+                        onChange={(e) => setFilter({ ...filter, search: e.target.value })}
+                    />
                 </div>
-                <select
-                    className="flex-1 md:w-48 px-3 py-2 bg-tm-background border border-tm-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    value={filter.status}
-                    onChange={(e) => setFilter({ ...filter, status: e.target.value })}
+            )}
+
+            {selectedCount > 0 && (
+                <button
+                    onClick={onDeleteSelected}
+                    className="px-4 py-2 bg-red-600 border border-red-500 rounded-lg text-xs font-bold text-white hover:bg-red-500 transition-all cursor-pointer shadow-lg shadow-red-900/20"
                 >
-                    {STATUSES.map(s => (
-                        <option key={s} value={s} className="bg-tm-background">{s}</option>
-                    ))}
-                </select>
-            </div>
+                    Delete selected
+                </button>
+            )}
         </div>
     );
 }

@@ -83,19 +83,24 @@ export default function QualificationPage() {
     return (
         <>
             <DashboardHeader title="Qualification Setup" />
-            <main className="p-8">
+            <main className="p-8 pb-12">
                 <div className="flex justify-end mb-8">
                     <button
                         onClick={handleAdd}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
+                        className="bg-white hover:bg-zinc-200 text-black px-6 py-2.5 rounded-xl font-semibold transition-all shadow-lg flex items-center gap-2 cursor-pointer"
                     >
-                        + Add Position
+                        <span className="text-lg">+</span> Add Position
                     </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {isLoading ? (
-                        <div className="col-span-full py-20 text-center text-gray-500">Loading positions...</div>
+                        <div className="col-span-full py-20 text-center text-zinc-500">
+                            <div className="animate-pulse space-y-2">
+                                <div className="h-4 bg-zinc-800 rounded w-48 mx-auto"></div>
+                                <div className="text-sm">Loading positions...</div>
+                            </div>
+                        </div>
                     ) : positions.length > 0 ? (
                         positions.map((pos) => (
                             <PositionCard
@@ -106,7 +111,10 @@ export default function QualificationPage() {
                             />
                         ))
                     ) : (
-                        <div className="col-span-full py-20 text-center text-gray-500">No positions found. Add one to get started.</div>
+                        <div className="col-span-full py-24 text-center border-2 border-dashed border-zinc-800 rounded-3xl">
+                            <p className="text-zinc-500 mb-2">No positions found.</p>
+                            <p className="text-xs text-zinc-600">Add one to get started.</p>
+                        </div>
                     )}
                 </div>
 
