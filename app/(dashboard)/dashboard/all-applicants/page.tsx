@@ -176,6 +176,7 @@ function AllApplicantsContent() {
 
     const [isBatchProcessing, setIsBatchProcessing] = useState(false);
     const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | undefined>(undefined);
+    const [processingId, setProcessingId] = useState<string | null>(null);
 
     const handleBatchProcess = async () => {
         const pendingStatuses = ["pending", "scoring", "extracted", "failed"];
@@ -196,16 +197,24 @@ function AllApplicantsContent() {
         for (let i = 0; i < toProcess.length; i++) {
             const applicant = toProcess[i];
             setBatchProgress({ current: i + 1, total: toProcess.length });
+            setProcessingId(applicant.id);
 
             try {
-                // Reuse handleRegenerate logic but without the fetchApplicants at each step for smoother batch
                 const res = await fetch("/api/ai/process", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ applicant_id: applicant.id }),
                 });
 
-                if (!res.ok) {
+                if (res.ok) {
+                    const resultData = await res.json();
+                    // Update local state immediately for "Live" feel
+                    setApplicants(prev => prev.map(a =>
+                        a.id === applicant.id
+                            ? { ...a, status: resultData.status, score_total: resultData.score }
+                            : a
+                    ));
+                } else {
                     const data = await res.json();
                     console.error(`Batch failed for ${applicant.nama}:`, data.error);
                 }
@@ -215,13 +224,17 @@ function AllApplicantsContent() {
 
             // Wait 5 seconds if not the last one
             if (i < toProcess.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                await new Promise(resolve => {
+                    const timer = setTimeout(resolve, 5000);
+                    return () => clearTimeout(timer);
+                });
             }
         }
 
         setIsBatchProcessing(false);
         setBatchProgress(undefined);
-        fetchApplicants(); // Final refresh
+        setProcessingId(null);
+        fetchApplicants(); // Final sync with all fields
     };
 
     return (
@@ -244,7 +257,7 @@ function AllApplicantsContent() {
             {/* ── Scrollable table area only ── */}
             {/* calc: 100dvh minus DashboardHeader(~57px) minus FilterBar(~48px) minus footer(~44px) */}
             <div
-                className="overflow-x-auto overflow-y-scroll"
+                className="overflow-x_auto overflow-y-scroll"
                 style={{ height: 'calc(100dvh - 57px - 48px - 44px)' }}
             >
                 <div className="pb-20 bg-[#171717]">
@@ -258,9 +271,11 @@ function AllApplicantsContent() {
                         onSelectOne={handleSelectOne}
                         sort={sort}
                         onSort={handleSort}
+                        processingId={processingId}
                     />
                 </div>
             </div>
+
 
             {/* ── Fixed Pagination Footer ── */}
             <div className="fixed bottom-0 left-0 md:left-[64px] right-0 bg-[#161616] border-t border-tm-border px-6 py-3 flex items-center justify-between text-xs text-zinc-400 z-30">

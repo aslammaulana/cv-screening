@@ -1,8 +1,11 @@
 import { ApplicantStatus } from "@/lib/data/applicants";
+import { RiLoader4Line } from "react-icons/ri";
 
 interface StatusBadgeProps {
     status: ApplicantStatus;
+    isProcessing?: boolean;
 }
+
 
 const config: Record<
     ApplicantStatus,
@@ -46,7 +49,16 @@ const config: Record<
     },
 };
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
+export default function StatusBadge({ status, isProcessing }: StatusBadgeProps) {
+    if (isProcessing) {
+        return (
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shadow-sm shadow-black/20 bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <RiLoader4Line className="animate-spin text-sm" />
+                In Progress
+            </span>
+        );
+    }
+
     const { label, className } = config[status] ?? config.pending;
     return (
         <span
@@ -56,3 +68,4 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
         </span>
     );
 }
+

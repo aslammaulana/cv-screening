@@ -36,7 +36,9 @@ interface ApplicantTableProps {
     // Controlled sorting
     sort: SortState;
     onSort: (key: SortKey) => void;
+    processingId?: string | null;
 }
+
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
     // Show down arrow by default when newest (null state) to indicate "Click to sort"
@@ -59,10 +61,13 @@ export default function ApplicantTable({
     onSelectAll,
     onSelectOne,
     sort,
-    onSort
+    onSort,
+    processingId
 }: ApplicantTableProps) {
+
     const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
     const [isRegenerating, setIsRegenerating] = useState<string | null>(null);
+
 
     // Stamp original fetch order
     const indexedApplicants = useMemo(
@@ -259,8 +264,12 @@ export default function ApplicantTable({
                                 {/* STATUS */}
                                 <td className="px-4 py-3.5 border-b border-r border-zinc-700">
                                     <div className="flex items-center justify-between gap-2">
-                                        <StatusBadge status={a.status as ApplicantStatus} />
+                                        <StatusBadge
+                                            status={a.status as ApplicantStatus}
+                                            isProcessing={isRegenerating === a.id || processingId === a.id}
+                                        />
                                         <button
+
                                             onClick={() => handleRegenerate(a.id)}
                                             disabled={isRegenerating === a.id}
                                             title="Regenerate AI Review"
