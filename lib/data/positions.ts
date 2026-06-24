@@ -8,10 +8,6 @@ export interface Position {
     manual_review_min: number;
     manual_review_max: number;
     auto_approve_above: number;
-    weight_skill: number;
-    weight_experience: number;
-    weight_project: number;
-    weight_education: number;
     focus_points: string;
     red_flags: string;
     created_at?: string;
@@ -29,10 +25,6 @@ export const mockPositions: Position[] = [
         manual_review_min: 51,
         manual_review_max: 85,
         auto_approve_above: 86,
-        weight_skill: 30,
-        weight_experience: 35,
-        weight_project: 20,
-        weight_education: 15,
         focus_points: "Portfolio projects, real-world experience",
         red_flags: "No practical experience, plagiarized portfolio",
     },
@@ -46,10 +38,6 @@ export const mockPositions: Position[] = [
         manual_review_min: 51,
         manual_review_max: 85,
         auto_approve_above: 86,
-        weight_skill: 25,
-        weight_experience: 40,
-        weight_project: 15,
-        weight_education: 20,
         focus_points: "Financial reporting accuracy",
         red_flags: "Gaps in employment, no relevant certifications",
     },

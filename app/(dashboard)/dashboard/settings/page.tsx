@@ -9,7 +9,6 @@ import { RiHistoryLine, RiCheckLine, RiLoader4Line } from "react-icons/ri";
 interface AIConfig {
     id: string;
     persona_prompt: string;
-    extraction_prompt: string;
     scoring_prompt: string;
     updated_at: string;
 }
@@ -76,7 +75,6 @@ export default function SettingsPage() {
                 .from("ai_config")
                 .update({
                     persona_prompt: config.persona_prompt,
-                    extraction_prompt: config.extraction_prompt,
                     scoring_prompt: config.scoring_prompt,
                     updated_at: new Date().toISOString()
                 })
@@ -91,13 +89,6 @@ export default function SettingsPage() {
                     prompt_type: "persona",
                     previous_value: originalConfig.persona_prompt,
                     new_value: config.persona_prompt
-                });
-            }
-            if (config.extraction_prompt !== originalConfig.extraction_prompt) {
-                changes.push({
-                    prompt_type: "extraction",
-                    previous_value: originalConfig.extraction_prompt,
-                    new_value: config.extraction_prompt
                 });
             }
             if (config.scoring_prompt !== originalConfig.scoring_prompt) {
@@ -185,18 +176,13 @@ export default function SettingsPage() {
                             onChange={(val) => setConfig({ ...config, persona_prompt: val })}
                             rows={4}
                         />
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 pt-8 border-t border-zinc-800/50">
-                            <PromptEditor
-                                label="Extraction Prompt"
-                                value={config.extraction_prompt}
-                                onChange={(val) => setConfig({ ...config, extraction_prompt: val })}
-                                rows={15}
-                            />
+                        <div className="pt-8 border-t border-zinc-800/50">
                             <PromptEditor
                                 label="Scoring Prompt"
+                                description="Template prompt untuk menilai kandidat. Gunakan placeholder: {position_title}, {must_have}, {nice_to_have}, {focus_points}, {red_flags}"
                                 value={config.scoring_prompt}
                                 onChange={(val) => setConfig({ ...config, scoring_prompt: val })}
-                                rows={15}
+                                rows={12}
                             />
                         </div>
                     </div>

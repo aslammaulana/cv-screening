@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Position } from "@/lib/data/positions";
 import { RiCloseLine } from "react-icons/ri";
 
@@ -15,13 +15,61 @@ const defaultForm: FormData = {
     manual_review_min: 51,
     manual_review_max: 85,
     auto_approve_above: 86,
-    weight_skill: 30,
-    weight_experience: 35,
-    weight_project: 20,
-    weight_education: 15,
     focus_points: "",
     red_flags: "",
 };
+
+// ── Tooltip Component ──────────────────────────────────────────
+function Tooltip({ text, example }: { text: string; example?: string }) {
+    const [visible, setVisible] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) {
+                setVisible(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    return (
+        <div ref={ref} className="relative inline-flex items-center">
+            <button
+                type="button"
+                onClick={() => setVisible((v) => !v)}
+                className="w-3.5 h-3.5 rounded-full bg-zinc-700 hover:bg-zinc-500 text-zinc-300 text-[9px] font-black flex items-center justify-center leading-none transition-colors cursor-pointer select-none"
+                aria-label="Info"
+            >
+                !
+            </button>
+            {visible && (
+                <div className="absolute left-5 top-1/2 -translate-y-1/2 z-[100] w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-3.5 text-left">
+                    <p className="text-[11px] text-zinc-200 leading-relaxed">{text}</p>
+                    {example && (
+                        <div className="mt-2 pt-2 border-t border-zinc-800">
+                            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Contoh</span>
+                            <p className="text-[11px] text-blue-400 mt-0.5 leading-relaxed italic">{example}</p>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Label with Tooltip ─────────────────────────────────────────
+function FieldLabel({ children, tooltip, example }: { children: React.ReactNode; tooltip: string; example?: string }) {
+    return (
+        <div className="flex items-center gap-1.5 mb-2">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-none">{children}</span>
+            <Tooltip text={tooltip} example={example} />
+        </div>
+    );
+}
+
+// ──────────────────────────────────────────────────────────────
 
 interface PositionModalProps {
     open: boolean;
@@ -43,7 +91,6 @@ export default function PositionModal({
 
         if (editTarget) {
             const { id, ...rest } = editTarget;
-            // Only update if title differs or it's a different record (id)
             setForm(prev => {
                 if (prev.title === rest.title && prev.must_have === rest.must_have) return prev;
                 return rest as FormData;
@@ -56,15 +103,12 @@ export default function PositionModal({
         }
     }, [editTarget, open]);
 
-    const totalWeight =
-        form.weight_skill + form.weight_experience + form.weight_project + form.weight_education;
-
     const thresholdsValid =
         form.auto_reject_below < form.manual_review_min &&
         form.manual_review_min < form.manual_review_max &&
         form.manual_review_max < form.auto_approve_above;
 
-    const isValid = form.title.trim() !== "" && totalWeight === 100 && thresholdsValid;
+    const isValid = form.title.trim() !== "" && thresholdsValid;
 
     const set = <K extends keyof FormData>(key: K, value: FormData[K]) =>
         setForm((prev) => ({ ...prev, [key]: value }));
@@ -97,7 +141,12 @@ export default function PositionModal({
                 <div className="px-8 py-6 space-y-6 overflow-y-auto scrollbar-thin">
                     {/* Title */}
                     <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 leading-none">Position Title</label>
+                        <FieldLabel
+                            tooltip="Nama jabatan yang sedang dibuka rekrutmen. Akan digunakan AI sebagai konteks utama saat menilai kandidat."
+                            example="Web Developer, Akuntan Senior, Marketing Manager"
+                        >
+                            Position Title
+                        </FieldLabel>
                         <input
                             type="text"
                             value={form.title}
@@ -109,7 +158,12 @@ export default function PositionModal({
 
                     {/* Status Toggle */}
                     <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 leading-none">Status</label>
+                        <FieldLabel
+                            tooltip="Menentukan apakah posisi ini masih terbuka untuk menerima lamaran. Posisi Inactive tidak akan muncul di form pendaftaran."
+                            example="Active = sedang membuka lowongan. Inactive = rekrutmen ditutup sementara."
+                        >
+                            Status
+                        </FieldLabel>
                         <div className="flex gap-3">
                             {[true, false].map((val) => (
                                 <button
@@ -130,9 +184,14 @@ export default function PositionModal({
                     </div>
 
                     <div className="grid grid-cols-1 gap-6">
-                        {/* Must Have / Nice to Have */}
+                        {/* Must Have */}
                         <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 leading-none">Must Have Requirements</label>
+                            <FieldLabel
+                                tooltip="Syarat WAJIB yang harus dipenuhi kandidat. Jika kandidat tidak memenuhi semua syarat ini, AI akan otomatis menolak terlepas dari skor."
+                                example="Min. S1 Informatika, pengalaman min. 2 tahun React.js, pernah bekerja di perusahaan teknologi"
+                            >
+                                Must Have Requirements
+                            </FieldLabel>
                             <textarea
                                 rows={3}
                                 value={form.must_have}
@@ -141,8 +200,14 @@ export default function PositionModal({
                                 className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all resize-none"
                             />
                         </div>
+                        {/* Nice to Have */}
                         <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 leading-none">Nice to Have Requirements</label>
+                            <FieldLabel
+                                tooltip="Kelebihan yang tidak wajib tetapi akan meningkatkan nilai kandidat di mata AI. Kandidat tanpa ini tetap bisa lolos jika memenuhi Must Have."
+                                example="Familiar dengan Docker, punya kontribusi open source, pengalaman startup"
+                            >
+                                Nice to Have Requirements
+                            </FieldLabel>
                             <textarea
                                 rows={2}
                                 value={form.nice_to_have}
@@ -155,7 +220,12 @@ export default function PositionModal({
 
                     {/* Score Thresholds */}
                     <div className="p-4 bg-zinc-900/30 border border-zinc-800 rounded-2xl">
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4 leading-none">Scoring Thresholds</label>
+                        <FieldLabel
+                            tooltip="Batas nilai (0–100) untuk penentuan status otomatis oleh sistem setelah AI memberikan skor."
+                            example="Reject < 50 → auto ditolak. 51–85 → HR review manual. > 86 → auto diterima."
+                        >
+                            Scoring Thresholds
+                        </FieldLabel>
                         <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-tight">Reject &lt;</span>
@@ -201,48 +271,15 @@ export default function PositionModal({
                         )}
                     </div>
 
-                    {/* Scoring Weights */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-none">Scoring Distribution</label>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${totalWeight === 100 ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}`}>
-                                ∑ {totalWeight}% {totalWeight === 100 ? "✓" : "(Required 100%)"}
-                            </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                            {(
-                                [
-                                    ["Skills", "weight_skill", "bg-blue-500"],
-                                    ["Experience", "weight_experience", "bg-purple-500"],
-                                    ["Projects", "weight_project", "bg-cyan-500"],
-                                    ["Education", "weight_education", "bg-emerald-500"],
-                                ] as [string, keyof FormData, string][]
-                            ).map(([label, key, color]) => (
-                                <div key={key} className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className={`w-1.5 h-1.5 rounded-full ${color}/50`}></span>
-                                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-tight">{label}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            max={100}
-                                            value={form[key] as number}
-                                            onChange={(e) => set(key, Number(e.target.value))}
-                                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-zinc-600 transition-all"
-                                        />
-                                        <span className="text-xs text-zinc-700">%</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
                     {/* Focus Points & Red Flags */}
                     <div className="grid grid-cols-1 gap-6">
                         <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 leading-none">Focus Points (AI Insights)</label>
+                            <FieldLabel
+                                tooltip="Hal-hal spesifik yang perlu diperhatikan AI saat menilai kandidat. AI akan memberikan bobot lebih pada aspek ini."
+                                example="Proyek nyata yang pernah dikerjakan sendiri, pengalaman memimpin tim, kontribusi ke produk live"
+                            >
+                                Focus Points (AI Insights)
+                            </FieldLabel>
                             <textarea
                                 rows={2}
                                 value={form.focus_points}
@@ -251,7 +288,12 @@ export default function PositionModal({
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 leading-none">Red Flags (Auto Penalty)</label>
+                            <FieldLabel
+                                tooltip="Tanda bahaya yang akan membuat AI menurunkan skor secara signifikan. Jika ditemukan, nilai kandidat akan dipotong."
+                                example="Tidak ada pengalaman kerja sama sekali, CV tidak relevan dengan posisi, riwayat kerja penuh celah tanpa penjelasan"
+                            >
+                                Red Flags (Auto Penalty)
+                            </FieldLabel>
                             <textarea
                                 rows={2}
                                 value={form.red_flags}

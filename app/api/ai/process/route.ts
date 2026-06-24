@@ -1,7 +1,27 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { google } from "googleapis";
+
+// Robust JSON parsing (handles backticks and leading/trailing text)
+function parseAIResponse(raw: string) {
+    try {
+        const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+        const start = cleaned.indexOf("{");
+        const end = cleaned.lastIndexOf("}");
+
+        if (start === -1 || end === -1) {
+            // Check if it's already a simple string that might be parsable
+            return JSON.parse(cleaned);
+        }
+
+        const jsonStr = cleaned.substring(start, end + 1);
+        return JSON.parse(jsonStr);
+    } catch (err) {
+        console.error("[AI Parse Error] Raw text:", raw);
+        throw new Error("Failed to parse AI response as JSON");
+    }
+}
 
 export async function POST(req: Request) {
     try {
@@ -39,62 +59,51 @@ export async function POST(req: Request) {
             process.env.GEMINI_API_KEY_5
         ].filter(Boolean) as string[];
 
-        async function genAIWithRotation(prompt: string, fileName?: string, fileBuffer?: Buffer) {
+        async function genAIWithRotation(prompt: string) {
+            const modelId = "gemini-2.5-flash"; // Model paling hemat & cepat
+
             for (let i = 0; i < apiKeys.length; i++) {
-                const key = apiKeys[i];
-                console.log(`[AI Process] Attempting AI with Key #${i + 1}...`);
+                const apiKey = apiKeys[i];
+                console.log(`[AI Process] Attempting AI with Key #${i + 1} (${modelId})...`);
 
                 try {
-                    const genAI = new GoogleGenerativeAI(key);
-                    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                    const client = new GoogleGenAI({ apiKey });
+                    const result = await client.models.generateContent({
+                        model: modelId,
+                        contents: [{ role: "user", parts: [{ text: prompt }] }],
+                        config: {
+                            temperature: 0.2, // Low temperature for more consistent extraction/scoring
+                        }
+                    });
 
-                    if (fileBuffer && fileName) {
-                        return await model.generateContent([
-                            {
-                                inlineData: {
-                                    data: fileBuffer.toString("base64"),
-                                    mimeType: "application/pdf",
-                                },
-                            },
-                            { text: prompt },
-                        ]);
-                    } else {
-                        return await model.generateContent(prompt);
-                    }
+                    return result;
                 } catch (err: any) {
-                    const isQuotaError = err.message?.includes("429") || err.message?.includes("quota");
-                    if (isQuotaError && i < apiKeys.length - 1) {
-                        console.warn(`[AI Process] Key #${i + 1} quota exceeded. Rotating to Key #${i + 2}...`);
+                    const message = err.message?.toLowerCase() || "";
+                    const status = err.status || err.code;
+                    const isTransientError =
+                        status === 429 ||
+                        status === 503 ||
+                        status === 500 ||
+                        message.includes("quota") ||
+                        message.includes("overloaded") ||
+                        message.includes("unavailable") ||
+                        message.includes("internal error") ||
+                        message.includes("demand");
+
+                    if (isTransientError && i < apiKeys.length - 1) {
+                        console.warn(`[AI Process] Key #${i + 1} experienced transient error (${status}: ${err.message}). Rotating to Key #${i + 2}...`);
                         continue;
                     }
+                    console.error(`[AI Process] Key #${i + 1} failed with non-transient or final error:`, err.message);
                     throw err; // Real error or last key exhausted
                 }
             }
-            throw new Error("All Gemini API keys exhausted their quota.");
+            throw new Error("All Gemini API keys exhausted their quota or failed.");
         }
 
-        // Download CV from Storage
-        const { data: fileData, error: downloadError } = await supabase.storage
-            .from("cv-uploads")
-            .download(applicant.cv_url);
-
-        if (downloadError || !fileData) throw new Error(`CV Download failed: ${downloadError?.message}`);
-
-        const arrayBuffer = await fileData.arrayBuffer();
-        const pdfBuffer = Buffer.from(arrayBuffer);
-
-        // Step 1: Extraction
-        console.log(`[AI Process] Step 1: Extracting CV data via Gemini...`);
-        const extractResult = await genAIWithRotation(config.extraction_prompt, "cv.pdf", pdfBuffer);
-        const extText = extractResult.response.text();
-        const cvJson = JSON.parse(extText.replace(/```json|```/g, "").trim());
-
-        // Update DB with extracted data
-        await supabase.from("applicants").update({ cv_json: cvJson }).eq("id", applicant_id);
-        console.log(`[AI Process] Step 1 Complete: CV extracted.`);
-
-        // 3. Scoring
-        console.log(`[AI Process] Step 2: Scoring applicant...`);
+        // Step 1: Scoring langsung dari teks CV mentah (tanpa ekstraksi terpisah)
+        // Menghemat 1 API call dengan meneruskan extracted_cv langsung ke prompt scoring
+        console.log(`[AI Process] Step 1: Scoring applicant from raw CV text...`);
         const scoringPrompt = config.scoring_prompt
             .replace("{position_title}", position.title)
             .replace("{must_have}", position.must_have || "None")
@@ -102,36 +111,39 @@ export async function POST(req: Request) {
             .replace("{focus_points}", position.focus_points || "None")
             .replace("{red_flags}", position.red_flags || "None");
 
-        const fullScoringPrompt = `${config.persona_prompt}\n\nTARGET POSITION: ${position.title}\n\nCandidate Data:\n${JSON.stringify(cvJson)}\n\n${scoringPrompt}\n\nCRITICAL CONTEXT:\nYou are hiring for the specific role of **${position.title}**. \n\nSCORING REFINEMENT:\n- **Projects:** If the candidate does not have a dedicated "Projects" section, do NOT automatically give a low score. Instead, look for specific project achievements (e.g., "Led the migration of...", "Built a system for...") within their "Experience" section and use that to inform the Project score.\n- **Indonesian:** Respond strictly in Indonesian language for ai_reason_accept and ai_reason_reject.\n- **Failure Condition:** If the candidate's career track is in a completely different industry (e.g. IT CV for Accountant role), set "meets_all_must_haves" to false.\n\nJSON Output keys: score_skill, score_experience, score_project, score_education, ai_reason_accept, ai_reason_reject, meets_all_must_haves (boolean).`;
+        // Bersihkan teks CV dari whitespace berlebih untuk hemat token
+        const rawCvText = applicant.extracted_cv || "";
+        const cleanedCvText = rawCvText
+            .replace(/\s+/g, " ")        // Ganti multiple spaces/newlines jadi satu spasi
+            .replace(/\n+/g, " ")        // Ganti multiple newlines jadi satu spasi
+            .trim()
+            .substring(0, 10000);        // Batasi 10rb karakter (~2000-3000 kata)
+
+        const cvText = cleanedCvText || "(CV text not available)";
+
+        const fullScoringPrompt = `${config.persona_prompt}\n\nTARGET POSITION: ${position.title}\n\nCandidate CV Text (raw):\n${cvText}\n\n${scoringPrompt}\n\nCRITICAL CONTEXT:\nYou are hiring for the specific role of **${position.title}**.\n\nSCORING RULES:\n- Give a single holistic score (0-100) based on how well the candidate meets the must_have, nice_to_have, focus_points, and red_flags criteria.\n- If the candidate's career is in a completely different field (e.g. IT CV for Accountant role), set "meets_all_must_haves" to false and score must be <= 40.\n- Respond strictly in Indonesian language for ai_reason.\n- ai_reason: If the candidate is suitable, explain WHY they are a good fit. If not suitable, explain WHY they don't meet the requirements. Only one reason field — no separate accept/reject.\n\nJSON Output keys: score_total (integer 0-100), ai_reason (string, in Indonesian), meets_all_must_haves (boolean).`;
 
         let scores: any;
         try {
             console.log(`[AI Process] Calling Gemini for Scoring...`);
             const scoreResult = await genAIWithRotation(fullScoringPrompt);
-            const scoreText = scoreResult.response.text();
+            const scoreText = scoreResult.text || "";
 
-            const cleanedScoreJson = scoreText.replace(/```json|```/g, "").trim();
-            scores = JSON.parse(cleanedScoreJson);
-            console.log(`[AI Process] Score JSON parsed. Meets all must-haves: ${scores.meets_all_must_haves}`);
+            scores = parseAIResponse(scoreText);
+            console.log(`[AI Process] Score JSON parsed. score_total: ${scores.score_total}, meets_all_must_haves: ${scores.meets_all_must_haves}`);
         } catch (scoreParseErr: any) {
             console.error(`[AI Process] Scoring Logic/Parsing Error:`, scoreParseErr.message);
             throw new Error(`Scoring failed: ${scoreParseErr.message}`);
         }
 
-        // Calculate weighted score
-        let scoreTotal = Math.round(
-            (scores.score_skill * position.weight_skill / 100) +
-            (scores.score_experience * position.weight_experience / 100) +
-            (scores.score_project * position.weight_project / 100) +
-            (scores.score_education * position.weight_education / 100)
-        );
+        // AI memberikan score_total langsung (0-100)
+        let scoreTotal = Math.min(100, Math.max(0, Math.round(scores.score_total || 0)));
 
-        // STRICTOR MUST-HAVE ENFORCEMENT
+        // MUST-HAVE ENFORCEMENT
         let finalStatus = "manual_review";
         if (scores.meets_all_must_haves === false) {
             console.log(`[AI Process] MUST-HAVE failed. Forcing auto_rejected status.`);
             finalStatus = "auto_rejected";
-            // Optional: cap the score if failed must-have
             if (scoreTotal > 40) scoreTotal = 40;
         } else if (scoreTotal >= position.auto_approve_above) {
             finalStatus = "auto_approved";
@@ -139,22 +151,24 @@ export async function POST(req: Request) {
             finalStatus = "auto_rejected";
         }
 
+        const sanitizeReason = (reason: any) => {
+            if (Array.isArray(reason)) return reason.join("\n");
+            if (typeof reason === "object") return JSON.stringify(reason);
+            return String(reason || "");
+        };
+
         await supabase.from("applicants").update({
-            score_skill: scores.score_skill,
-            score_experience: scores.score_experience,
-            score_project: scores.score_project,
-            score_education: scores.score_education,
             score_total: scoreTotal,
-            ai_reason_accept: scores.ai_reason_accept,
-            ai_reason_reject: scores.ai_reason_reject,
+            ai_reason_accept: sanitizeReason(scores.ai_reason),
+            ai_reason_reject: null,
             status: finalStatus
         }).eq("id", applicant_id);
 
-        console.log(`[AI Process] Step 2 Complete: Status determined as ${finalStatus} (Score: ${scoreTotal})`);
+        console.log(`[AI Process] Step 1 Complete: Status determined as ${finalStatus} (Score: ${scoreTotal})`);
 
         // 4. Google Sheets Sync
         try {
-            console.log(`[AI Process] Step 3: Syncing to Google Sheets...`);
+            console.log(`[AI Process] Step 2: Syncing to Google Sheets...`);
             const auth = new google.auth.GoogleAuth({
                 credentials: {
                     client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -164,13 +178,14 @@ export async function POST(req: Request) {
             });
 
             const sheets = google.sheets({ version: "v4", auth });
-            const cvUrl = applicant.cv_url.startsWith('http')
-                ? applicant.cv_url
-                : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/cv-uploads/${applicant.cv_url}`;
+
+            // cv_url sekarang sudah berisi Google Drive Link
+            const cvUrl = applicant.cv_url;
+            const aiReason = sanitizeReason(scores.ai_reason);
 
             await sheets.spreadsheets.values.append({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
-                range: "Applicants!A:N",
+                range: "Applicants!A:K",
                 valueInputOption: "USER_ENTERED",
                 requestBody: {
                     values: [[
@@ -180,18 +195,14 @@ export async function POST(req: Request) {
                         applicant.gender,
                         position.title,
                         scoreTotal,
-                        scores.score_skill,
-                        scores.score_experience,
-                        scores.score_project,
-                        scores.score_education,
                         finalStatus,
-                        scores.ai_reason_accept,
-                        scores.ai_reason_reject,
-                        cvUrl
+                        aiReason,
+                        cvUrl,
+                        applicant.extracted_cv
                     ]]
                 }
             });
-            console.log(`[AI Process] Step 3 Complete: Sheets updated.`);
+            console.log(`[AI Process] Step 2 Complete: Sheets updated.`);
         } catch (sheetErr: any) {
             console.error(`[AI Process] Sheets sync error:`, sheetErr.message);
         }

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { google } from "googleapis";
-import { Readable } from "stream";
+import { uploadFileToDrive, getDriveFolderIdByPosition, sanitizeSlug } from "@/lib/google/drive";
+import pdf from "pdf-parse";
+
 
 export async function POST(req: Request) {
     try {
@@ -57,36 +58,22 @@ export async function POST(req: Request) {
             );
         }
 
-        // 4. Upload CV to Supabase Storage
-        let filePath = "";
+        // 4. Convert file → Buffer
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // 5. Ekstrak teks PDF via pdf-parse
+        let extractedText = "";
         try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${nama.replace(/\s+/g, "_")}_${posisi.replace(/\s+/g, "_")}_${Date.now()}.${fileExt}`;
-            filePath = fileName;
-
-            const { error: uploadError } = await supabase.storage
-                .from('cv-uploads')
-                .upload(fileName, file, {
-                    contentType: 'application/pdf',
-                    cacheControl: '3600',
-                    upsert: false
-                });
-
-            if (uploadError) throw uploadError;
-
-            // Get the public or signed URL if needed, but for internal use, we just store the path
-            // In Next.js, we can also use publicUrl if bucket is public, but it's private.
-            // For now, we store the fileName/path.
-        } catch (storageErr: unknown) {
-            const error = storageErr as Error;
-            console.error("[Apply API] Supabase Storage error:", error.message);
-            return NextResponse.json(
-                { error: `Storage upload failed: ${error.message}` },
-                { status: 500 }
-            );
+            const pdfData = await pdf(buffer);
+            extractedText = pdfData.text || "";
+            console.log(`[Apply API] PDF extracted: ${extractedText.length} characters`);
+        } catch (pdfErr) {
+            // Tetap lanjut meskipun ekstraksi gagal (PDF scan/gambar)
+            console.warn("[Apply API] PDF extraction failed, continuing without extracted text:", pdfErr);
         }
 
-        // 5. Insert to Supabase
+        // 6. Insert ke Supabase → dapat id & id_no
         const { data: newApplicant, error: insertError } = await supabase
             .from("applicants")
             .insert({
@@ -94,10 +81,11 @@ export async function POST(req: Request) {
                 nama,
                 email,
                 gender,
-                cv_url: filePath,
+                cv_url: "",           // akan diupdate setelah upload Drive
+                extracted_cv: extractedText,
                 status: "pending",
             })
-            .select("id")
+            .select("id, id_no")
             .single();
 
         if (insertError || !newApplicant) {
@@ -105,21 +93,48 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Failed to save application." }, { status: 500 });
         }
 
-        // 6. Trigger AI Extraction (Non-blocking)
-        console.log(`[Apply API] Triggering AI processing for ${newApplicant.id}...`);
+        const applicantId = newApplicant.id;
+        const idNo = newApplicant.id_no;
 
-        // Use an absolute URL based on the request host
+        // 7. Upload CV ke Google Drive
+        // Nama file: {id_no}-{nama-slug}-{posisi-slug}.pdf
+        // Contoh: 1-ahmad-maysura-web-developer.pdf
+        let cvUrl = "";
+        try {
+            const fileName = `${idNo}-${sanitizeSlug(nama)}-${sanitizeSlug(posisi)}.pdf`;
+            const folderId = getDriveFolderIdByPosition(posisi);
+
+            cvUrl = await uploadFileToDrive({ buffer, fileName, folderId });
+            console.log(`[Apply API] CV uploaded to Drive: ${cvUrl}`);
+        } catch (driveErr) {
+            console.error("[Apply API] Google Drive upload error:", driveErr);
+            // Tetap lanjut, cv_url akan kosong — admin bisa re-upload manual
+        }
+
+        // 8. Update Supabase dengan cv_url dari Drive
+        if (cvUrl) {
+            const { error: updateError } = await supabase
+                .from("applicants")
+                .update({ cv_url: cvUrl })
+                .eq("id", applicantId);
+
+            if (updateError) {
+                console.error("[Apply API] Failed to update cv_url:", updateError);
+            }
+        }
+
+        // 9. Trigger AI Processing (Non-blocking)
+        console.log(`[Apply API] Triggering AI processing for ${applicantId}...`);
+
         const protocol = req.headers.get("x-forwarded-proto") || "http";
         const host = req.headers.get("host");
         const aiUrl = `${protocol}://${host}/api/ai/process`;
 
         fetch(aiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ applicant_id: newApplicant.id })
-        }).catch(err => console.error('[Apply API] Failed to trigger AI process:', err));
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ applicant_id: applicantId }),
+        }).catch(err => console.error("[Apply API] Failed to trigger AI process:", err));
 
         return NextResponse.json({ message: "CV received successfully" });
     } catch (err: unknown) {

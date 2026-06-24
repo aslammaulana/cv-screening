@@ -2,6 +2,7 @@
 
 interface PromptEditorProps {
     label: string;
+    description?: string;
     value: string;
     onChange: (val: string) => void;
     rows?: number;
@@ -9,13 +10,19 @@ interface PromptEditorProps {
 
 export default function PromptEditor({
     label,
+    description,
     value,
     onChange,
     rows = 6,
 }: PromptEditorProps) {
     return (
         <div className="flex flex-col gap-3">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">{label}</label>
+            <div className="ml-1">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{label}</label>
+                {description && (
+                    <p className="text-[11px] text-zinc-600 mt-1 leading-relaxed">{description}</p>
+                )}
+            </div>
             <textarea
                 value={value}
                 onChange={(e) => onChange(e.target.value)}

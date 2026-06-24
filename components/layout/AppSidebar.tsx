@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { LayoutDashboard, Award, Settings, X, ChevronRight } from "lucide-react"
+import { LayoutDashboard, Award, Settings, X, ChevronRight, Users } from "lucide-react"
+import { FiUpload } from "react-icons/fi"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -14,8 +15,10 @@ interface AppSidebarProps {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/all-applicants", label: "All Applicants", icon: Users },
   { href: "/dashboard/qualification", label: "Qualifications", icon: Award },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/apply", label: "Test Apply", icon: FiUpload },
 ]
 
 export default function AppSidebar({ mobileOpen = false, onMobileClose }: AppSidebarProps) {
@@ -61,11 +64,11 @@ export default function AppSidebar({ mobileOpen = false, onMobileClose }: AppSid
   return (
     <>
       {/* ── DESKTOP SIDEBAR — hover to expand ── */}
-      <aside className="group hidden md:flex fixed left-0 top-0 z-40 h-screen w-[64px] flex-col border-r-2 border-tm-border bg-tm-background transition-all duration-300 ease-in-out hover:w-[240px] overflow-y-auto overflow-x-hidden scrollbar-thin">
+      <aside className="group hidden md:flex fixed left-0 top-0 z-40 h-screen w-[64px] flex-col border-r border-tm-border bg-tm-background transition-all duration-300 ease-in-out hover:w-[240px] overflow-y-auto overflow-x-hidden scrollbar-thin">
         {/* Desktop sidebar header */}
-        <Link href="/dashboard" className="flex h-16 items-center gap-3 px-3 border-b border-tm-border shrink-0">
+        <Link href="/dashboard" className="flex h-[65px] items-center gap-3 px-3 border-b border-tm-border shrink-0">
           <div className="shrink-0">
-            <Image src="/logo-tmbh-512.png" alt="Logo" width={40} height={40} className="rounded-lg h-10 w-10" />
+            <Image src="/logo-tmbh-512.png" alt="Logo" width={38} height={38} className="rounded-lg h-10 w-10" />
           </div>
           <span className="text-base font-semibold tracking-tight text-white opacity-0 transition-all duration-300 group-hover:opacity-100 whitespace-nowrap">CV Screener</span>
         </Link>

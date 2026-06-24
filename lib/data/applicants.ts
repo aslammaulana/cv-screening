@@ -18,12 +18,8 @@ export interface Applicant {
     score_total: number;
     cv_url: string;
     status: ApplicantStatus;
-    score_skill: number;
-    score_experience: number;
-    score_project: number;
-    score_education: number;
     ai_reason_accept: string;
-    ai_reason_reject: string;
+    extracted_cv?: string;
 }
 
 export const mockApplicants: Applicant[] = [
@@ -36,13 +32,7 @@ export const mockApplicants: Applicant[] = [
         score_total: 92,
         cv_url: "#",
         status: "auto_approved",
-        score_skill: 88,
-        score_experience: 95,
-        score_project: 90,
-        score_education: 85,
-        ai_reason_accept:
-            "Kandidat memiliki 3+ tahun pengalaman nyata di perusahaan produk, background React yang kuat, dan portfolio yang solid.",
-        ai_reason_reject: "Tidak ada kelemahan signifikan yang ditemukan.",
+        ai_reason_accept: "Kandidat memiliki 3+ tahun pengalaman nyata di perusahaan produk, background React yang kuat, dan portfolio yang solid.",
     },
     {
         id: "2",
@@ -53,13 +43,7 @@ export const mockApplicants: Applicant[] = [
         score_total: 73,
         cv_url: "#",
         status: "manual_review",
-        score_skill: 70,
-        score_experience: 75,
-        score_project: 68,
-        score_education: 80,
-        ai_reason_accept:
-            "Pengalaman relevan 2 tahun di bidang akuntansi, familiar dengan laporan keuangan.",
-        ai_reason_reject: "Belum memiliki sertifikasi profesional yang disyaratkan.",
+        ai_reason_accept: "Pengalaman relevan 2 tahun di bidang akuntansi, familiar dengan laporan keuangan. Belum memiliki sertifikasi profesional yang disyaratkan.",
     },
     {
         id: "3",
@@ -70,13 +54,7 @@ export const mockApplicants: Applicant[] = [
         score_total: 31,
         cv_url: "#",
         status: "auto_rejected",
-        score_skill: 30,
-        score_experience: 25,
-        score_project: 35,
-        score_education: 40,
-        ai_reason_accept: "Memiliki gelar di bidang terkait.",
-        ai_reason_reject:
-            "Tidak ada pengalaman kerja profesional. Portfolio tidak relevan dengan posisi yang dilamar.",
+        ai_reason_accept: "Tidak ada pengalaman kerja profesional. Portfolio tidak relevan dengan posisi yang dilamar.",
     },
     {
         id: "4",
@@ -87,13 +65,7 @@ export const mockApplicants: Applicant[] = [
         score_total: 58,
         cv_url: "#",
         status: "manual_review",
-        score_skill: 55,
-        score_experience: 60,
-        score_project: 52,
-        score_education: 65,
-        ai_reason_accept:
-            "Pengalaman 1 tahun sebagai junior dev, familiar dengan React dasar.",
-        ai_reason_reject: "Pengalaman masih minim, portfolio kurang lengkap.",
+        ai_reason_accept: "Pengalaman 1 tahun sebagai junior dev, familiar dengan React dasar. Pengalaman masih minim, portfolio kurang lengkap.",
     },
     {
         id: "5",
@@ -104,13 +76,7 @@ export const mockApplicants: Applicant[] = [
         score_total: 89,
         cv_url: "#",
         status: "auto_approved",
-        score_skill: 85,
-        score_experience: 92,
-        score_project: 88,
-        score_education: 90,
-        ai_reason_accept:
-            "5 tahun pengalaman di Big 4, memiliki sertifikasi CPA, track record yang sangat baik.",
-        ai_reason_reject: "Tidak ada kelemahan signifikan.",
+        ai_reason_accept: "5 tahun pengalaman di Big 4, memiliki sertifikasi CPA, track record yang sangat baik.",
     },
     {
         id: "6",
@@ -121,12 +87,6 @@ export const mockApplicants: Applicant[] = [
         score_total: 0,
         cv_url: "#",
         status: "failed",
-        score_skill: 0,
-        score_experience: 0,
-        score_project: 0,
-        score_education: 0,
-        ai_reason_accept: "",
-        ai_reason_reject:
-            "Gagal ekstrak CV — file corrupt atau format tidak didukung.",
+        ai_reason_accept: "Gagal ekstrak CV — file corrupt atau format tidak didukung.",
     },
 ];

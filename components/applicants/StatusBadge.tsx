@@ -10,27 +10,27 @@ const config: Record<
 > = {
     auto_approved: {
         label: "Auto Approved",
-        className: "bg-green-500/10 text-green-400 border border-green-500/20",
+        className: "bg-[#2566426e] text-white border border-[#226942b7]",
     },
     manual_review: {
         label: "Needs Review",
-        className: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+        className: "bg-[#b489255d] text-white border border-[#b489259a]",
     },
     auto_rejected: {
         label: "Auto Rejected",
-        className: "bg-red-500/10 text-red-400 border border-red-500/20",
+        className: "bg-[#541c15b7] text-white border border-[#79281c]",
     },
     approved: {
         label: "Approved",
-        className: "bg-green-500/10 text-green-400 border border-green-500/20",
+        className: "bg-[#2566426e] text-white border border-[#226942b7]",
     },
     rejected: {
         label: "Rejected",
-        className: "bg-red-500/10 text-red-400 border border-red-500/20",
+        className: "bg-[#541c15b7] text-white border border-[#79281c]",
     },
     pending: {
         label: "Processing",
-        className: "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
+        className: "bg-zinc-500/10 text-white border border-zinc-500/20",
     },
     extracted: {
         label: "Extracted",
@@ -42,7 +42,7 @@ const config: Record<
     },
     failed: {
         label: "Failed",
-        className: "bg-red-500/10 text-red-400 border border-red-500/20",
+        className: "bg-[#541c15b7] text-white border border-[#79281c]",
     },
 };
 
