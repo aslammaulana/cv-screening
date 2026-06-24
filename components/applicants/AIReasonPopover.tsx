@@ -33,7 +33,7 @@ export default function AIReasonPopover({ applicant, onClose }: AIReasonPopoverP
                     return (
                         <ul className="list-disc pl-5 space-y-1">
                             {reasons.map((item, i) => (
-                                <li key={i} className="text-[13px] text-white/60 leading-relaxed">
+                                <li key={i} className="text-[14px] text-white/60 leading-relaxed">
                                     {item}
                                 </li>
                             ))}
@@ -47,10 +47,11 @@ export default function AIReasonPopover({ applicant, onClose }: AIReasonPopoverP
 
         // Default text biasa
         return (
-            <p className="text-xs text-zinc-300 leading-relaxed">
+            <p className="text-[13px] text-zinc-200 leading-relaxed ">
                 {reason}
             </p>
         );
+
     };
 
     return (
@@ -64,10 +65,10 @@ export default function AIReasonPopover({ applicant, onClose }: AIReasonPopoverP
                 <div className="flex items-center justify-between p-6 pb-4 shrink-0">
                     <div>
                         <h3 className="font-semibold text-white text-sm flex items-center gap-1.5">
-                            <RiSparklingLine className="text-blue-400" />
+
                             AI Reasoning
                         </h3>
-                        <p className="text-xs text-zinc-400 mt-0.5">{applicant.nama} · {applicant.position}</p>
+                        <p className="text-[13px] text-zinc-400 mt-1">{applicant.nama} · {applicant.position}</p>
                     </div>
                     <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
                         <RiCloseLine className="text-xl" />
@@ -79,11 +80,11 @@ export default function AIReasonPopover({ applicant, onClose }: AIReasonPopoverP
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 pt-5 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto  p-6 pt-5 custom-scrollbar">
                     {applicant.ai_reason_accept ? (
                         formatReason(applicant.ai_reason_accept)
                     ) : (
-                        <p className="text-xs text-zinc-500 italic">Belum ada analisa AI.</p>
+                        <p className="text-[14px] text-zinc-500 italic">Belum ada analisa AI.</p>
                     )}
                 </div>
             </div>
