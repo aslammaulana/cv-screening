@@ -1,8 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { RiSearchLine, RiRestartLine, RiArrowUpDownLine } from "react-icons/ri";
+import { RiSearchLine, RiRestartLine, RiArrowUpDownLine, RiSparklingLine } from "react-icons/ri";
 import { FiTable } from "react-icons/fi";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
+}
+
 
 interface FilterBarProps {
     filter: { search: string; position: string; status: string };
@@ -13,6 +20,9 @@ interface FilterBarProps {
     onResetSort?: () => void;
     isSorted?: boolean;
     isLoading?: boolean;
+    onBatchProcess?: () => void;
+    isBatchProcessing?: boolean;
+    batchProgress?: { current: number; total: number };
 }
 
 export default function FilterBar({
@@ -23,7 +33,10 @@ export default function FilterBar({
     onRefresh,
     onResetSort,
     isSorted = false,
-    isLoading = false
+    isLoading = false,
+    onBatchProcess,
+    isBatchProcessing = false,
+    batchProgress
 }: FilterBarProps) {
     return (
         <div className="px-4 py-3 border-b border-[#3d3d3d] flex items-center justify-between gap-3 bg-[#0F0F0F]">
@@ -66,6 +79,29 @@ export default function FilterBar({
                     </button>
                 ) : (
                     <>
+                        <button
+                            onClick={onBatchProcess}
+                            disabled={isBatchProcessing}
+                            className={cn(
+                                "flex items-center gap-2 px-3 py-2 border rounded-lg text-xs font-medium transition-all cursor-pointer disabled:cursor-not-allowed",
+                                isBatchProcessing
+                                    ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                                    : "bg-[#1F1F1F] border-[#3d3d3d] text-white/90 hover:bg-[#313131] hover:border-zinc-700"
+                            )}
+                        >
+                            {isBatchProcessing ? (
+                                <>
+                                    <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                    Processing {batchProgress ? `(${batchProgress.current}/${batchProgress.total})` : ""}
+                                </>
+                            ) : (
+                                <>
+                                    <RiSparklingLine className="text-blue-400" />
+                                    Batch Process
+                                </>
+                            )}
+                        </button>
+
                         <a
                             href="https://docs.google.com/spreadsheets/d/1-6k0QQZ3DkcxVD9hEUEXUvYLnZzDOENYo0QgcU0pTBk/edit?gid=0#gid=0"
                             target="_blank"
@@ -75,6 +111,7 @@ export default function FilterBar({
                             <FiTable className="text-zinc-500" />
                             Spreadsheets
                         </a>
+
 
                         <button
                             onClick={onRefresh}

@@ -174,6 +174,56 @@ function AllApplicantsContent() {
     const totalPages = Math.ceil(totalRecords / pageSize) || 1;
     const paginatedApplicants = filteredApplicants.slice((page - 1) * pageSize, page * pageSize);
 
+    const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+    const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | undefined>(undefined);
+
+    const handleBatchProcess = async () => {
+        const pendingStatuses = ["pending", "scoring", "extracted", "failed"];
+        const toProcess = applicants.filter(a => pendingStatuses.includes(a.status));
+
+        if (toProcess.length === 0) {
+            alert("No pending or failed applicants found to process.");
+            return;
+        }
+
+        if (!confirm(`Found ${toProcess.length} applicants to process. Start batch processing with 5-second delay between each?`)) {
+            return;
+        }
+
+        setIsBatchProcessing(true);
+        setBatchProgress({ current: 0, total: toProcess.length });
+
+        for (let i = 0; i < toProcess.length; i++) {
+            const applicant = toProcess[i];
+            setBatchProgress({ current: i + 1, total: toProcess.length });
+
+            try {
+                // Reuse handleRegenerate logic but without the fetchApplicants at each step for smoother batch
+                const res = await fetch("/api/ai/process", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ applicant_id: applicant.id }),
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    console.error(`Batch failed for ${applicant.nama}:`, data.error);
+                }
+            } catch (err) {
+                console.error(`System error in batch for ${applicant.nama}:`, err);
+            }
+
+            // Wait 5 seconds if not the last one
+            if (i < toProcess.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+        }
+
+        setIsBatchProcessing(false);
+        setBatchProgress(undefined);
+        fetchApplicants(); // Final refresh
+    };
+
     return (
         <div>
             {/* FilterBar — static, does not scroll */}
@@ -186,6 +236,9 @@ function AllApplicantsContent() {
                 onResetSort={handleResetSort}
                 isSorted={!!sort.key}
                 isLoading={isLoading}
+                onBatchProcess={handleBatchProcess}
+                isBatchProcessing={isBatchProcessing}
+                batchProgress={batchProgress}
             />
 
             {/* ── Scrollable table area only ── */}
