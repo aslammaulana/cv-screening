@@ -7,7 +7,10 @@ if (!process.env.RESEND_API_KEY) {
     console.warn('Warning: RESEND_API_KEY is not set. Resend emails will not be sent.');
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize lazily or with a fallback to avoid crash during build
+const resend = process.env.RESEND_API_KEY
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null;
 
 export async function sendApplicantEmail(
     status: string,
@@ -15,8 +18,8 @@ export async function sendApplicantEmail(
     candidateEmail: string,
     jobTitle: string
 ) {
-    if (!process.env.RESEND_API_KEY) {
-        console.warn('[Resend] Skipping email send: RESEND_API_KEY not found');
+    if (!resend) {
+        console.warn('[Resend] Skipping email send: Resend client not initialized (check API key)');
         return;
     }
 
