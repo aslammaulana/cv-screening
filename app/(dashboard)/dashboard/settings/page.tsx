@@ -13,8 +13,6 @@ interface AIConfig {
     updated_at: string;
 }
 
-const supabase = createClient();
-
 export default function SettingsPage() {
     const [config, setConfig] = useState<AIConfig | null>(null);
     const [originalConfig, setOriginalConfig] = useState<AIConfig | null>(null);
@@ -24,17 +22,22 @@ export default function SettingsPage() {
 
     const fetchConfig = useCallback(async () => {
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from("ai_config")
-            .select("*")
-            .single();
+        try {
+            const res = await fetch("/api/settings");
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
 
-        if (!error && data) {
-            setConfig({ ...data });
-            setOriginalConfig({ ...data });
+            if (data) {
+                setConfig({ ...data });
+                setOriginalConfig({ ...data });
+            }
+        } catch (err: any) {
+            console.error("Fetch error:", err);
+            alert("Failed to load settings: " + err.message);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
-    }, [supabase]);
+    }, []);
 
     useEffect(() => {
         fetchConfig();
@@ -46,15 +49,17 @@ export default function SettingsPage() {
         setSaveStatus("idle");
 
         try {
-            const { error: updateError } = await supabase
-                .from("ai_config")
-                .update({
-                    persona_prompt: config.persona_prompt,
-                    updated_at: new Date().toISOString()
-                })
-                .eq("id", config.id);
+            const res = await fetch("/api/settings", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: config.id,
+                    persona_prompt: config.persona_prompt
+                }),
+            });
 
-            if (updateError) throw updateError;
+            const result = await res.json();
+            if (result.error) throw new Error(result.error);
 
             setSaveStatus("success");
             setOriginalConfig({ ...config });
