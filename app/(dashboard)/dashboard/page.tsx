@@ -29,12 +29,12 @@ function DashboardContent() {
     }, []);
 
     return (
-        <main className="p-8">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+        <main className="p-4 md:p-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
                 <MetricCard
                     title="Total Applicants"
                     value={stats.total}
-                    description="Semua pelamar masuk"
+                    description="Total submissions"
                     icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -46,7 +46,7 @@ function DashboardContent() {
                 <MetricCard
                     title="Apply Today"
                     value={stats.today}
-                    description="Submission hari ini"
+                    description="Submitted today"
                     icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -59,7 +59,7 @@ function DashboardContent() {
                 <MetricCard
                     title="Need Review"
                     value={stats.needReview}
-                    description="Perlu ditinjau manual"
+                    description="Awaiting manual review"
                     href="/dashboard/all-applicants?status=manual_review"
                     icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -71,7 +71,7 @@ function DashboardContent() {
                 <MetricCard
                     title="Auto Approved"
                     value={stats.autoApproved}
-                    description="Disetujui oleh AI"
+                    description="Automatically approved"
                     icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
                             <polyline points="20 6 9 17 4 12" />
@@ -81,7 +81,7 @@ function DashboardContent() {
                 <MetricCard
                     title="Auto Rejected"
                     value={stats.autoRejected}
-                    description="Ditolak oleh AI"
+                    description="Automatically rejected"
                     icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
                             <line x1="18" y1="6" x2="6" y2="18" />
@@ -92,7 +92,7 @@ function DashboardContent() {
                 <MetricCard
                     title="Failed"
                     value={stats.failed}
-                    description="Gagal diproses"
+                    description="Processing failed"
                     icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
                             <circle cx="12" cy="12" r="10" />

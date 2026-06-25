@@ -15,7 +15,7 @@ export default function PositionCard({
     onToggleActive,
 }: PositionCardProps) {
     return (
-        <div className="bg-tm-secondary border border-tm-border rounded-2xl p-6 transition-all duration-300 hover:border-zinc-700 shadow-xl group">
+        <div className="bg-[#1F1F1F] border border-tm-border rounded-xl p-4 md:p-6 transition-all duration-300 hover:border-zinc-700  group">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-white text-lg tracking-tight">{position.title}</h3>
@@ -50,21 +50,21 @@ export default function PositionCard({
             </div>
 
             {/* Thresholds Summary Panel */}
-            <div className="space-y-3 mb-6 p-4 bg-zinc-900/50 border border-zinc-800/50 rounded-xl relative overflow-hidden">
+            <div className="space-y-3 mb-6 p-4 bg-[#171716] border border-white/20 rounded-md relative overflow-hidden">
                 <div className="flex items-start gap-4">
                     <div className="flex-1 min-w-0">
                         <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 leading-none">Score Thresholds</p>
-                        <div className="flex flex-wrap gap-y-2 gap-x-4 items-center">
+                        <div className="flex flex-wrap gap-y-3 gap-x-4 items-center">
                             <div className="flex flex-col">
                                 <span className="text-[10px] text-zinc-600 font-medium">Reject</span>
                                 <span className="text-xs text-red-400 font-mono font-bold">&lt;{position.auto_reject_below}</span>
                             </div>
-                            <div className="w-px h-6 bg-zinc-800"></div>
+                            <div className="hidden sm:block w-px h-6 bg-zinc-800"></div>
                             <div className="flex flex-col">
                                 <span className="text-[10px] text-zinc-600 font-medium">Review</span>
                                 <span className="text-xs text-amber-400 font-mono font-bold">{position.manual_review_min}–{position.manual_review_max}</span>
                             </div>
-                            <div className="w-px h-6 bg-zinc-800"></div>
+                            <div className="hidden sm:block w-px h-6 bg-zinc-800"></div>
                             <div className="flex flex-col">
                                 <span className="text-[10px] text-zinc-600 font-medium">Approve</span>
                                 <span className="text-xs text-green-400 font-mono font-bold">&gt;{position.auto_approve_above}</span>
@@ -75,26 +75,26 @@ export default function PositionCard({
             </div>
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-zinc-800/30">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pt-2 gap-4">
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => onEdit(position)}
-                        className="flex items-center gap-2 text-xs font-bold text-white bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-lg transition-all cursor-pointer"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-medium text-white bg-[#0F0F0E] border border-white/30 hover:bg-zinc-700 px-4 py-2 rounded-lg transition-all cursor-pointer"
                     >
                         <RiEditLine className="text-sm opacity-70" />
                         Edit Settings
                     </button>
                     <button
                         onClick={() => onToggleActive(position.id)}
-                        className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-lg border transition-all cursor-pointer ${position.is_active
-                            ? "text-zinc-500 border-zinc-800 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-bold px-4 py-2 rounded-lg border transition-all cursor-pointer ${position.is_active
+                            ? "text-zinc-500 border-white/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
                             : "text-green-400 border-green-500/20 bg-green-500/5 hover:bg-green-500/10"
                             }`}
                     >
                         {position.is_active ? (
-                            <><RiToggleFill className="text-sm opacity-70" /> Pause</>
+                            <><RiToggleFill className="text-sm opacity-90" /> Pause</>
                         ) : (
-                            <><RiToggleLine className="text-sm opacity-70" /> Resume</>
+                            <><RiToggleLine className="text-sm opacity-90" /> Resume</>
                         )}
                     </button>
                 </div>

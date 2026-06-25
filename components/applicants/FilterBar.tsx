@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { RiSearchLine, RiRestartLine, RiArrowUpDownLine, RiSparklingLine } from "react-icons/ri";
+import { FaStop } from "react-icons/fa";
 import { FiTable } from "react-icons/fi";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -23,6 +24,7 @@ interface FilterBarProps {
     onBatchProcess?: () => void;
     isBatchProcessing?: boolean;
     batchProgress?: { current: number; total: number };
+    onStopBatch?: () => void;
 }
 
 export default function FilterBar({
@@ -36,11 +38,12 @@ export default function FilterBar({
     isLoading = false,
     onBatchProcess,
     isBatchProcessing = false,
-    batchProgress
+    batchProgress,
+    onStopBatch
 }: FilterBarProps) {
     return (
-        <div className="px-4 py-3 border-b border-[#3d3d3d] flex items-center justify-between gap-3 bg-[#0F0F0F]">
-            <div className="flex items-center gap-3 flex-1">
+        <div className="px-4 py-3 border-b border-[#3d3d3d] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0F0F0F]">
+            <div className="flex items-center gap-2 flex-1">
                 <div className="relative w-full max-w-xs">
                     {isLoading ? (
                         <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -69,7 +72,7 @@ export default function FilterBar({
                 )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                 {selectedCount > 0 ? (
                     <button
                         onClick={onDeleteSelected}
@@ -114,11 +117,22 @@ export default function FilterBar({
 
 
                         <button
-                            onClick={onRefresh}
-                            title="Refresh data"
-                            className="p-2 bg-[#1F1F1F] border border-[#3d3d3d] rounded-lg font-medium text-white/90 hover:bg-[#313131] hover:border-zinc-700 transition-all cursor-pointer flex items-center justify-center"
+                            onClick={isBatchProcessing ? onStopBatch : onRefresh}
+                            title={isBatchProcessing ? "Stop Batch Processing" : "Refresh data"}
+                            className={cn(
+                                "p-2 border rounded-lg font-medium transition-all cursor-pointer flex items-center justify-center",
+                                isBatchProcessing
+                                    ? "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20"
+                                    : "bg-[#1F1F1F] border-[#3d3d3d] text-white/90 hover:bg-[#313131] hover:border-zinc-700"
+                            )}
                         >
-                            <RiRestartLine size={16} />
+                            <div className="animate-none flex items-center justify-center">
+                                {isBatchProcessing ? (
+                                    <FaStop size={12} />
+                                ) : (
+                                    <RiRestartLine size={16} />
+                                )}
+                            </div>
                         </button>
                     </>
                 )}

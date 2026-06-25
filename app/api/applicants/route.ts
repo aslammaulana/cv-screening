@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { sendApplicantEmail } from "@/lib/resend";
 
 export async function GET(req: Request) {
     const supabase = createAdminClient();
@@ -45,6 +46,17 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: "Missing id or status" }, { status: 400 });
     }
 
+    // Capture applicant details if we're moving to a terminal status
+    let applicantData: any = null;
+    if (['approved', 'rejected'].includes(status)) {
+        const { data } = await supabase
+            .from("applicants")
+            .select("nama, email, job_positions(title)")
+            .eq("id", id)
+            .single();
+        applicantData = data;
+    }
+
     const { error } = await supabase
         .from("applicants")
         .update({ status, updated_at: new Date().toISOString() })
@@ -52,6 +64,20 @@ export async function PATCH(req: Request) {
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Trigger email notification (non-blocking)
+    if (applicantData && (status === 'approved' || status === 'rejected')) {
+        const jobTitle = Array.isArray(applicantData.job_positions)
+            ? applicantData.job_positions[0]?.title
+            : applicantData.job_positions?.title || "Unknown Position";
+
+        sendApplicantEmail(
+            status,
+            applicantData.nama,
+            applicantData.email,
+            jobTitle
+        ).catch(err => console.error("[PATCH Email Error]:", err));
     }
 
     return NextResponse.json({ success: true });

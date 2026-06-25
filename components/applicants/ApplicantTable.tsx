@@ -14,8 +14,9 @@ import {
     RiArrowDownSLine,
     RiLoader4Line,
     RiRestartLine,
-    RiSubtractLine
+    RiSubtractLine,
 } from "react-icons/ri";
+import { FaStop } from "react-icons/fa";
 
 export type SortKey = "nama" | "email" | "gender" | "position" | "score_total" | "status";
 export type SortDir = "asc" | "desc" | null;
@@ -37,6 +38,7 @@ interface ApplicantTableProps {
     sort: SortState;
     onSort: (key: SortKey) => void;
     processingId?: string | null;
+    onStop?: () => void;
 }
 
 
@@ -62,7 +64,8 @@ export default function ApplicantTable({
     onSelectOne,
     sort,
     onSort,
-    processingId
+    processingId,
+    onStop
 }: ApplicantTableProps) {
 
     const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
@@ -269,13 +272,18 @@ export default function ApplicantTable({
                                             isProcessing={isRegenerating === a.id || processingId === a.id}
                                         />
                                         <button
-
-                                            onClick={() => handleRegenerate(a.id)}
-                                            disabled={isRegenerating === a.id}
-                                            title="Regenerate AI Review"
-                                            className={`p-1.5 rounded-md border border-zinc-600 text-white/70 hover:bg-zinc-700 hover:text-white transition-all cursor-pointer ${isRegenerating === a.id ? "text-blue-400 border-blue-400/30" : ""}`}
+                                            onClick={(isRegenerating === a.id || processingId === a.id) ? onStop : () => handleRegenerate(a.id)}
+                                            title={(isRegenerating === a.id || processingId === a.id) ? "Stop Processing" : "Regenerate AI Review"}
+                                            className={`p-1.5 rounded-md border transition-all cursor-pointer ${(isRegenerating === a.id || processingId === a.id)
+                                                ? "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20"
+                                                : "border-zinc-600 text-white/70 hover:bg-zinc-700 hover:text-white"
+                                                }`}
                                         >
-                                            <RiRestartLine className={`text-[11px] ${isRegenerating === a.id ? "animate-spin" : ""}`} />
+                                            {(isRegenerating === a.id || processingId === a.id) ? (
+                                                <FaStop size={10} />
+                                            ) : (
+                                                <RiRestartLine className="text-[11px]" />
+                                            )}
                                         </button>
                                     </div>
                                 </td>

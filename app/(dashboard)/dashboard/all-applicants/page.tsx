@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import ApplicantTable, { SortKey, SortState } from "@/components/applicants/ApplicantTable";
 import FilterBar from "@/components/applicants/FilterBar";
@@ -177,6 +177,18 @@ function AllApplicantsContent() {
     const [isBatchProcessing, setIsBatchProcessing] = useState(false);
     const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | undefined>(undefined);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const stopBatchRef = useRef(false);
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    const handleStopBatch = () => {
+        stopBatchRef.current = true;
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        setIsBatchProcessing(false);
+        setProcessingId(null);
+        setBatchProgress(undefined);
+    };
 
     const handleBatchProcess = async () => {
         const pendingStatuses = ["pending", "scoring", "extracted", "failed"];
@@ -192,74 +204,80 @@ function AllApplicantsContent() {
         }
 
         setIsBatchProcessing(true);
+        stopBatchRef.current = false;
         setBatchProgress({ current: 0, total: toProcess.length });
 
         for (let i = 0; i < toProcess.length; i++) {
+            if (stopBatchRef.current) break;
             const applicant = toProcess[i];
             setBatchProgress({ current: i + 1, total: toProcess.length });
             setProcessingId(applicant.id);
+
+            const controller = new AbortController();
+            abortControllerRef.current = controller;
 
             try {
                 const res = await fetch("/api/ai/process", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ applicant_id: applicant.id }),
+                    signal: controller.signal,
                 });
 
                 if (res.ok) {
                     const resultData = await res.json();
-                    // Update local state immediately for "Live" feel
                     setApplicants(prev => prev.map(a =>
                         a.id === applicant.id
                             ? { ...a, status: resultData.status, score_total: resultData.score }
                             : a
                     ));
-                } else {
-                    const data = await res.json();
-                    console.error(`Batch failed for ${applicant.nama}:`, data.error);
                 }
-            } catch (err) {
+            } catch (err: any) {
+                if (err?.name === 'AbortError') break; // stopped by user
                 console.error(`System error in batch for ${applicant.nama}:`, err);
             }
 
-            // Wait 5 seconds if not the last one
+            if (stopBatchRef.current) break;
+
+            // Interruptible 5-second delay
             if (i < toProcess.length - 1) {
-                await new Promise(resolve => {
-                    const timer = setTimeout(resolve, 5000);
-                    return () => clearTimeout(timer);
-                });
+                for (let j = 0; j < 50; j++) {
+                    if (stopBatchRef.current) break;
+                    await new Promise(r => setTimeout(r, 100));
+                }
             }
         }
 
+        abortControllerRef.current = null;
         setIsBatchProcessing(false);
         setBatchProgress(undefined);
         setProcessingId(null);
-        fetchApplicants(); // Final sync with all fields
+        stopBatchRef.current = false;
+        fetchApplicants();
     };
 
     return (
-        <div>
-            {/* FilterBar — static, does not scroll */}
-            <FilterBar
-                filter={filter}
-                setFilter={setFilter}
-                selectedCount={selectedIds.length}
-                onDeleteSelected={handleDeleteSelected}
-                onRefresh={fetchApplicants}
-                onResetSort={handleResetSort}
-                isSorted={!!sort.key}
-                isLoading={isLoading}
-                onBatchProcess={handleBatchProcess}
-                isBatchProcessing={isBatchProcessing}
-                batchProgress={batchProgress}
-            />
+        <div className="flex flex-col md:h-[calc(100vh-64px-57px)]">
+            {/* FilterBar — STICKY ON MOBILE, STATIC ON DESKTOP */}
+            <div className="sticky top-0 z-20 md:relative md:top-auto md:z-10">
+                <FilterBar
+                    filter={filter}
+                    setFilter={setFilter}
+                    selectedCount={selectedIds.length}
+                    onDeleteSelected={handleDeleteSelected}
+                    onRefresh={fetchApplicants}
+                    onResetSort={handleResetSort}
+                    isSorted={!!sort.key}
+                    isLoading={isLoading}
+                    onBatchProcess={handleBatchProcess}
+                    onStopBatch={handleStopBatch}
+                    isBatchProcessing={isBatchProcessing}
+                    batchProgress={batchProgress}
+                />
+            </div>
 
-            {/* ── Scrollable table area only ── */}
-            {/* calc: 100dvh minus DashboardHeader(~57px) minus FilterBar(~48px) minus footer(~44px) */}
-            <div
-                className="overflow-x_auto overflow-y-scroll"
-                style={{ height: 'calc(100dvh - 57px - 48px - 44px)' }}
-            >
+            {/* ── Scrollable table area ── */}
+            <div className="overflow-x-auto min-h-0 flex-1 no-scrollbar md:overflow-y-auto md:scrollbar-always md:pb-0">
                 <div className="pb-20 bg-[#171717]">
                     <ApplicantTable
                         applicants={paginatedApplicants}
@@ -272,14 +290,15 @@ function AllApplicantsContent() {
                         sort={sort}
                         onSort={handleSort}
                         processingId={processingId}
+                        onStop={handleStopBatch}
                     />
                 </div>
             </div>
 
 
             {/* ── Fixed Pagination Footer ── */}
-            <div className="fixed bottom-0 left-0 md:left-[64px] right-0 bg-[#161616] border-t border-tm-border px-6 py-3 flex items-center justify-between text-xs text-zinc-400 z-30">
-                <div className="flex items-center gap-6">
+            <div className="fixed bottom-0 left-0 md:left-[64px] right-0 bg-[#161616] border-t border-tm-border px-4 py-2 sm:px-6 sm:py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-400 z-30">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6">
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -324,11 +343,11 @@ function AllApplicantsContent() {
                                 </svg>
                             </div>
                         </div>
-                        <span className="text-zinc-500 font-medium ml-2">{totalRecords} records</span>
+                        <span className="text-zinc-500 font-medium ml-2 hidden sm:inline">{totalRecords} records</span>
                     </div>
                 </div>
 
-                <div className="text-[10px] uppercase tracking-widest text-zinc-600 font-bold">
+                <div className="text-[10px] uppercase tracking-widest text-zinc-600 font-bold hidden sm:block">
                     Showing {totalRecords === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalRecords)}
                 </div>
             </div>
@@ -346,7 +365,10 @@ function AllApplicantsContent() {
 export default function AllApplicantsPage() {
     return (
         <>
-            <DashboardHeader title="All Applicants" />
+            <DashboardHeader
+                title="All Applicants"
+                className="hidden md:flex md:bg-tm-background"
+            />
             <Suspense fallback={
                 <div className="flex items-center justify-center py-20 text-zinc-500 gap-3">
                     <div className="w-4 h-4 border-2 border-zinc-500 border-t-transparent rounded-full animate-spin" />

@@ -27,7 +27,7 @@ export default function PromptEditor({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 rows={rows}
-                className="w-full border border-zinc-800 rounded-2xl px-5 py-4 text-sm text-zinc-300 bg-zinc-900/30 focus:bg-zinc-900/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 resize-y transition-all hover:border-zinc-700 placeholder-zinc-700"
+                className="w-full border border-white/20 rounded-[10px] px-5 py-4 text-sm text-zinc-300 bg-[#171717] focus:outline-none focus:ring focus:ring-white/20  resize-y transition-all  placeholder-zinc-700"
             />
         </div>
     );

@@ -1,0 +1,24 @@
+const { createClient } = require('@supabase/supabase-js');
+const dotenv = require('dotenv');
+const path = require('path');
+
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+
+async function exportConfig() {
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    const { data, error } = await supabase.from('ai_config').select('*').single();
+    if (error) {
+        console.error('Error:', error);
+        return;
+    }
+    console.log('=== PERSONA PROMPT ===');
+    console.log(data.persona_prompt);
+    console.log('\n=== SCORING PROMPT ===');
+    console.log(data.scoring_prompt);
+}
+
+exportConfig();

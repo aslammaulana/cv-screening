@@ -25,7 +25,52 @@ export default function AIReasonPopover({ applicant, onClose }: AIReasonPopoverP
     const formatReason = (reason: string) => {
         if (!reason) return null;
 
-        // Cek apakah string ini adalah JSON array
+        // Try to parse POSITIVES / NEGATIVES sections
+        const posMatch = reason.match(/POSITIVES?:\s*([\s\S]*?)(?=NEGATIVES?:|$)/i);
+        const negMatch = reason.match(/NEGATIVES?:\s*([\s\S]*?)$/i);
+
+        if (posMatch || negMatch) {
+            const parsePoints = (text: string) =>
+                text.split('\n')
+                    .map(l => l.replace(/^[-•*]\s*/, '').trim())
+                    .filter(l => l.length > 0);
+
+            const positives = posMatch ? parsePoints(posMatch[1]) : [];
+            const negatives = negMatch ? parsePoints(negMatch[1]) : [];
+
+            return (
+                <div className="space-y-5">
+                    {positives.length > 0 && (
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mb-2">✓ Positives</p>
+                            <ul className="space-y-1.5">
+                                {positives.map((point, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-[13px] text-zinc-200 leading-relaxed">
+                                        <span className="text-emerald-500 mt-0.5 shrink-0">+</span>
+                                        {point}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                    {negatives.length > 0 && (
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-2">✗ Negatives</p>
+                            <ul className="space-y-1.5">
+                                {negatives.map((point, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-[13px] text-zinc-200 leading-relaxed">
+                                        <span className="text-red-500 mt-0.5 shrink-0">−</span>
+                                        {point}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Cek apakah JSON array
         if (reason.trim().startsWith("[")) {
             try {
                 const reasons = JSON.parse(reason);
@@ -33,25 +78,24 @@ export default function AIReasonPopover({ applicant, onClose }: AIReasonPopoverP
                     return (
                         <ul className="list-disc pl-5 space-y-1">
                             {reasons.map((item, i) => (
-                                <li key={i} className="text-[14px] text-white/60 leading-relaxed">
-                                    {item}
-                                </li>
+                                <li key={i} className="text-[13px] text-white/60 leading-relaxed">{item}</li>
                             ))}
                         </ul>
                     );
                 }
-            } catch (e) {
-                // Jika gagal parse, biarkan sebagai text biasa
-            }
+            } catch (e) { /* fall through */ }
         }
 
-        // Default text biasa
+        // Default: multi-paragraph with newlines
         return (
-            <p className="text-[13px] text-zinc-200 leading-relaxed ">
-                {reason}
-            </p>
+            <div className="space-y-4">
+                {reason.split('\n').filter(p => p.trim() !== '').map((para, i) => (
+                    <p key={i} className="text-[13px] text-zinc-200 leading-relaxed">
+                        {para.trim()}
+                    </p>
+                ))}
+            </div>
         );
-
     };
 
     return (
@@ -59,7 +103,7 @@ export default function AIReasonPopover({ applicant, onClose }: AIReasonPopoverP
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
             <div
                 ref={ref}
-                className="relative bg-tm-secondary border border-tm-border rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
+                className="relative bg-tm-secondary border border-tm-border rounded-xl shadow-2xl w-full max-w-lg md:max-w-[800px] max-h-[90vh] flex flex-col overflow-hidden"
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 pb-4 shrink-0">
@@ -84,7 +128,7 @@ export default function AIReasonPopover({ applicant, onClose }: AIReasonPopoverP
                     {applicant.ai_reason_accept ? (
                         formatReason(applicant.ai_reason_accept)
                     ) : (
-                        <p className="text-[14px] text-zinc-500 italic">Belum ada analisa AI.</p>
+                        <p className="text-[14px] text-zinc-500 italic">No AI analysis available.</p>
                     )}
                 </div>
             </div>

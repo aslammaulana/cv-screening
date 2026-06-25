@@ -37,6 +37,30 @@
   }
 }
 
+/* Hide scrollbar but keep functionality */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+
+  /* Firefox */
+  &::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari and Opera */
+  }
+}
+
+/* Force scrollbar to be always visible */
+@utility scrollbar-always {
+  overflow-y: scroll;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    display: block !important;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

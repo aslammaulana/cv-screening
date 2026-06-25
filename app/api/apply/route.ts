@@ -43,21 +43,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Position not found or inactive" }, { status: 400 });
         }
 
-        // 3. Duplicate Check
-        const { data: existing } = await supabase
-            .from("applicants")
-            .select("id")
-            .eq("email", email)
-            .eq("job_position_id", posData.id)
-            .single();
-
-        if (existing) {
-            return NextResponse.json(
-                { error: "You have already applied for this position." },
-                { status: 400 }
-            );
-        }
-
         // 4. Convert file → Buffer
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);

@@ -1,6 +1,6 @@
 /**
- * Script satu kali untuk mendapatkan OAuth2 Refresh Token dari Google.
- * Jalankan: node scripts/get-google-token.mjs
+ * One-time script to obtain an OAuth2 Refresh Token from Google.
+ * Run: node scripts/get-google-token.mjs
  */
 
 import { createServer } from "http";
@@ -13,14 +13,14 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "../.env.local") });
 
-// ── Ambil dari environment variables ───────────────────────────
+// ── Read from environment variables ────────────────────────────
 const CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 const REDIRECT_URI = "http://localhost:3333/callback";
 // ───────────────────────────────────────────────────────────────
 
 if (!CLIENT_ID || !CLIENT_SECRET) {
-    console.error("❌ ERROR: Harap isi GOOGLE_OAUTH_CLIENT_ID dan GOOGLE_OAUTH_CLIENT_SECRET di .env.local");
+    console.error("❌ ERROR: Please set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in .env.local");
     process.exit(1);
 }
 
@@ -33,13 +33,13 @@ const authUrl = oauth2Client.generateAuthUrl({
 });
 
 console.log("\n─────────────────────────────────────────────");
-console.log("1. Buka URL ini di browser:");
+console.log("1. Open this URL in your browser:");
 console.log("\n" + authUrl + "\n");
-console.log("2. Login & izinkan akses Google Drive.");
-console.log("3. Tunggu, refresh token akan muncul di terminal ini.");
+console.log("2. Log in and grant access to Google Drive.");
+console.log("3. Wait — the refresh token will appear in this terminal.");
 console.log("─────────────────────────────────────────────\n");
 
-// Server sementara untuk tangkap callback dari Google
+// Temporary server to capture the OAuth callback from Google
 const server = createServer(async (req, res) => {
     if (!req.url?.startsWith("/callback")) return;
 
@@ -47,20 +47,20 @@ const server = createServer(async (req, res) => {
     const code = url.searchParams.get("code");
 
     if (!code) {
-        res.end("Error: code tidak ditemukan.");
+        res.end("Error: authorization code not found.");
         return;
     }
 
     try {
         const { tokens } = await oauth2Client.getToken(code);
-        res.end("<h2>Berhasil! Tutup tab ini dan lihat terminal.</h2>");
+        res.end("<h2>Success! You can close this tab and check the terminal.</h2>");
         server.close();
 
-        console.log("\n✅ BERHASIL! Salin nilai-nilai ini ke .env.local:\n");
+        console.log("\n✅ SUCCESS! Copy these values into your .env.local:\n");
         console.log(`GOOGLE_OAUTH_REFRESH_TOKEN=${tokens.refresh_token}`);
         console.log("\n─────────────────────────────────────────────\n");
     } catch (err) {
-        res.end("Error mendapatkan token: " + err);
+        res.end("Error retrieving token: " + err);
         server.close();
     }
 });

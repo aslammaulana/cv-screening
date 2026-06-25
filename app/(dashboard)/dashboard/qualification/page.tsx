@@ -83,11 +83,11 @@ export default function QualificationPage() {
     return (
         <>
             <DashboardHeader title="Qualification Setup" />
-            <main className="p-8 pb-12">
+            <main className="p-4 md:p-8 pb-12">
                 <div className="flex justify-end mb-8">
                     <button
                         onClick={handleAdd}
-                        className="bg-white hover:bg-zinc-200 text-black px-6 py-2.5 rounded-xl font-semibold transition-all shadow-lg flex items-center gap-2 cursor-pointer"
+                        className="flex items-center gap-2 px-4 py-1.5 rounded-md text-[14px] font-bold transition-all bg-white hover:bg-zinc-200 text-black shadow-xl cursor-pointer"
                     >
                         <span className="text-lg">+</span> Add Position
                     </button>

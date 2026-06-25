@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { GoogleGenAI } from "@google/genai";
 import { google } from "googleapis";
+import { sendApplicantEmail } from "@/lib/resend";
+import { PERSONA_PROMPT, SCORING_PROMPT_TEMPLATE } from "@/lib/ai/config";
 
 // Robust JSON parsing (handles backticks and leading/trailing text)
 function parseAIResponse(raw: string) {
@@ -104,7 +106,7 @@ export async function POST(req: Request) {
         // Step 1: Scoring langsung dari teks CV mentah (tanpa ekstraksi terpisah)
         // Menghemat 1 API call dengan meneruskan extracted_cv langsung ke prompt scoring
         console.log(`[AI Process] Step 1: Scoring applicant from raw CV text...`);
-        const scoringPrompt = config.scoring_prompt
+        const scoringPrompt = SCORING_PROMPT_TEMPLATE
             .replace("{position_title}", position.title)
             .replace("{must_have}", position.must_have || "None")
             .replace("{nice_to_have}", position.nice_to_have || "None")
@@ -121,7 +123,7 @@ export async function POST(req: Request) {
 
         const cvText = cleanedCvText || "(CV text not available)";
 
-        const fullScoringPrompt = `${config.persona_prompt}\n\nTARGET POSITION: ${position.title}\n\nCandidate CV Text (raw):\n${cvText}\n\n${scoringPrompt}\n\nCRITICAL CONTEXT:\nYou are hiring for the specific role of **${position.title}**.\n\nSCORING RULES:\n- Give a single holistic score (0-100) based on how well the candidate meets the must_have, nice_to_have, focus_points, and red_flags criteria.\n- If the candidate's career is in a completely different field (e.g. IT CV for Accountant role), set "meets_all_must_haves" to false and score must be <= 40.\n- Respond strictly in Indonesian language for ai_reason.\n- ai_reason: If the candidate is suitable, explain WHY they are a good fit. If not suitable, explain WHY they don't meet the requirements. Only one reason field — no separate accept/reject.\n\nJSON Output keys: score_total (integer 0-100), ai_reason (string, in Indonesian), meets_all_must_haves (boolean).`;
+        const fullScoringPrompt = `${config.persona_prompt}\n\nTARGET POSITION: ${position.title}\n\nCandidate CV Text (raw):\n${cvText}\n\n${scoringPrompt}\n\nCRITICAL CONTEXT:\nYou are hiring for the specific role of **${position.title}**.\n\nSCORING RULES:\n- Give a single holistic score (0-100) based on how well the candidate meets the must_have, nice_to_have, focus_points, and red_flags criteria.\n- If the candidate's career is in a completely different field, set "meets_all_must_haves" to false and score must be <= 40.\n- ALWAYS respond in English.\n- ai_reason: Format EXACTLY as two labeled sections. Each section has 2-3 bullet points (max 1 sentence each). Be direct and specific.\n\nFormat:\nPOSITIVES:\n- [positive point]\n- [positive point]\n\nNEGATIVES:\n- [negative point or N/A if none]\n- [negative point]\n\nJSON Output keys: score_total (integer 0-100), ai_reason (string following the format above), meets_all_must_haves (boolean).`;
 
         let scores: any;
         try {
@@ -166,7 +168,17 @@ export async function POST(req: Request) {
 
         console.log(`[AI Process] Step 1 Complete: Status determined as ${finalStatus} (Score: ${scoreTotal})`);
 
-        // 4. Google Sheets Sync
+        // Trigger automated email notification (non-blocking)
+        if (finalStatus === "auto_approved" || finalStatus === "auto_rejected") {
+            sendApplicantEmail(
+                finalStatus,
+                applicant.nama,
+                applicant.email,
+                position.title
+            ).catch(err => console.error("[AI Process Email Error]:", err));
+        }
+
+        // 4. Google Sheets Sync — update existing row, or append if not found
         try {
             console.log(`[AI Process] Step 2: Syncing to Google Sheets...`);
             const auth = new google.auth.GoogleAuth({
@@ -179,30 +191,56 @@ export async function POST(req: Request) {
 
             const sheets = google.sheets({ version: "v4", auth });
 
-            // cv_url sekarang sudah berisi Google Drive Link
             const cvUrl = applicant.cv_url;
             const aiReason = sanitizeReason(scores.ai_reason);
+            const rowData = [
+                new Date().toLocaleDateString("id-ID", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric"
+                }).replace(/\//g, "-"),
+                applicant.nama,
+                applicant.email,
+                applicant.gender,
+                position.title,
+                scoreTotal,
+                finalStatus,
+                aiReason,
+                cvUrl,
+                applicant.extracted_cv
+            ];
 
-            await sheets.spreadsheets.values.append({
+            // Read all existing rows to find a match by email + position
+            const existing = await sheets.spreadsheets.values.get({
                 spreadsheetId: process.env.GOOGLE_SHEET_ID,
                 range: "Applicants!A:K",
-                valueInputOption: "USER_ENTERED",
-                requestBody: {
-                    values: [[
-                        new Date().toISOString(),
-                        applicant.nama,
-                        applicant.email,
-                        applicant.gender,
-                        position.title,
-                        scoreTotal,
-                        finalStatus,
-                        aiReason,
-                        cvUrl,
-                        applicant.extracted_cv
-                    ]]
-                }
             });
-            console.log(`[AI Process] Step 2 Complete: Sheets updated.`);
+            const rows = existing.data.values || [];
+            // Email is col C (index 2), Position is col E (index 4)
+            const matchIndex = rows.findIndex(
+                (row) => row[2] === applicant.email && row[4] === position.title
+            );
+
+            if (matchIndex !== -1) {
+                // Overwrite existing row (1-indexed, skip header row at index 0)
+                const rowNumber = matchIndex + 1;
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+                    range: `Applicants!A${rowNumber}:J${rowNumber}`,
+                    valueInputOption: "USER_ENTERED",
+                    requestBody: { values: [rowData] }
+                });
+                console.log(`[AI Process] Step 2 Complete: Sheets row ${rowNumber} updated (no duplicate).`);
+            } else {
+                // No existing row — append new
+                await sheets.spreadsheets.values.append({
+                    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+                    range: "Applicants!A:K",
+                    valueInputOption: "USER_ENTERED",
+                    requestBody: { values: [rowData] }
+                });
+                console.log(`[AI Process] Step 2 Complete: Sheets new row appended.`);
+            }
         } catch (sheetErr: any) {
             console.error(`[AI Process] Sheets sync error:`, sheetErr.message);
         }
