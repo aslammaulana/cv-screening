@@ -77,13 +77,13 @@ export default function ApplicantTable({
 
     const sortedApplicants = useMemo(() => {
         if (!sort.key || !sort.dir) {
-            // Default: Newest first (assuming higher index or later in array is newer, 
-            // but usually dashboards show newest at top. Let's use descending index to be safe 
-            // if the source returns them in arrival order).
-            // NOTE: If the API already returns newest first, a.__idx - b.__idx would work.
-            // But b.__idx - a.__idx is safer to ensure "Newest at top" if index is chronological.
-            return [...indexedApplicants].sort((a, b) => b.__idx - a.__idx);
+            // Default: Newest first. 
+            // The API already returns applicants ordered by created_at DESC.
+            // So we just maintain that order by sorting ascending on our original index.
+            return [...indexedApplicants].sort((a, b) => a.__idx - b.__idx);
         }
+
+
         return [...indexedApplicants].sort((a, b) => {
             // numeric sort for score
             if (sort.key === "score_total") {
