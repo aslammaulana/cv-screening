@@ -13,14 +13,14 @@ interface AIConfig {
     updated_at: string;
 }
 
+const supabase = createClient();
+
 export default function SettingsPage() {
     const [config, setConfig] = useState<AIConfig | null>(null);
     const [originalConfig, setOriginalConfig] = useState<AIConfig | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
-
-    const supabase = createClient();
 
     const fetchConfig = useCallback(async () => {
         setIsLoading(true);
