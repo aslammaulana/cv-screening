@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS job_positions (
     focus_points TEXT,
     red_flags TEXT,
     auto_reject_below INTEGER DEFAULT 50,
+    manual_review_min INTEGER DEFAULT 51,
+    manual_review_max INTEGER DEFAULT 85,
     auto_approve_above INTEGER DEFAULT 86,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
