@@ -40,12 +40,7 @@ CREATE TABLE IF NOT EXISTS applicants (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. projects_keep_alive table
-CREATE TABLE IF NOT EXISTS projects_keep_alive (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    last_ping TIMESTAMPTZ DEFAULT NOW(),
-    note TEXT DEFAULT 'Heartbeat to prevent pausing'
-);
+
 
 -- 4. ai_config table
 CREATE TABLE IF NOT EXISTS ai_config (

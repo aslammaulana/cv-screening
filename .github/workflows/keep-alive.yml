@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Ping Keep-Alive API
         run: |
-          # Use curl to trigger the API with the secret
-          curl -X GET "${{ secrets.APP_URL }}/api/cron/keep-alive?secret=${{ secrets.CRON_SECRET }}"
+          # Use -i to show headers and inspect the response
+          curl -i "${{ secrets.APP_URL }}/api/cron/keep-alive?secret=${{ secrets.CRON_SECRET }}"
